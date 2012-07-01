@@ -16,10 +16,8 @@
 
 package uk.co.senab.util;
 
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * Static library version of {@link android.util.LruCache}. Used to write apps
@@ -114,7 +112,7 @@ public class LruCache<K, V> {
      *
      * @return the previous value mapped by {@code key}.
      */
-    public final V put(K key, V value) {
+    public V put(K key, V value) {
         if (key == null || value == null) {
             throw new NullPointerException("key == null || value == null");
         }
@@ -143,8 +141,8 @@ public class LruCache<K, V> {
      */
     private void trimToSize(int maxSize) {
         while (true) {
-            K key = null;
-            V value = null;
+            K key;
+            V value;
             synchronized (this) {
                 if (size < 0 || (map.isEmpty() && size != 0)) {
                     throw new IllegalStateException(getClass().getName()
@@ -154,59 +152,17 @@ public class LruCache<K, V> {
                 if (size <= maxSize || map.isEmpty()) {
                     break;
                 }
-                
-                final Iterator<Entry<K, V>> iterator = map.entrySet().iterator();
-                final int preEvictionCount = evictionCount;
-                Map.Entry<K, V> toEvict;
-                
-				/**
-				 * First Pass, first trying to honor
-				 * {@link #canRemoveEntry(K key, V value)}
-				 */
-				while (iterator.hasNext()) {
-					toEvict = iterator.next();
-					key = toEvict.getKey();
-					value = toEvict.getValue();
 
-					if (canRemoveEntry(key, value)) {
-						removeEntryInternal(key, value);
-						break;
-					}
-				}
-				
-				/**
-				 * If the first pass didn't evict a Entry, just evict the least
-				 * recently accessed, as normal
-				 */
-				if (preEvictionCount == evictionCount) {
-					toEvict = map.entrySet().iterator().next();
-					key = toEvict.getKey();
-					value = toEvict.getValue();
-					removeEntryInternal(key, value);
-				}
+                Map.Entry<K, V> toEvict = map.entrySet().iterator().next();
+                key = toEvict.getKey();
+                value = toEvict.getValue();
+                map.remove(key);
+                size -= safeSizeOf(key, value);
+                evictionCount++;
             }
 
-			if (null != key && null != value) {
-				entryRemoved(true, key, value, null);
-			}
+            entryRemoved(true, key, value, null);
         }
-    }
-    
-    private void removeEntryInternal(final K key, final V value) {
-    	map.remove(key);
-		size -= safeSizeOf(key, value);
-		evictionCount++;
-    }
-    
-	/**
-	 * Callback to whether the given {@code value} for {@code key} can be
-	 * removed from the cache. The cache will do it's best to honour the value
-	 * you return, but there is no guarantee.
-	 * 
-	 * @return true if the {@code value} can be removed from the cache.
-	 */
-    public boolean canRemoveEntry(K key, V value) {
-    	return true;
     }
 
     /**

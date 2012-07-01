@@ -1,6 +1,5 @@
 package uk.co.senab.bitmapcache;
 
-import uk.co.senab.bitmapcache.cache.CacheableBitmapWrapper;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
