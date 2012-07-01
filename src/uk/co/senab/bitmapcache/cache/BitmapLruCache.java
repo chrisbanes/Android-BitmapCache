@@ -52,6 +52,11 @@ public class BitmapLruCache extends LruCache<String, CacheableBitmapWrapper> {
 	public CacheableBitmapWrapper put(CacheableBitmapWrapper newValue) {
 		return put(newValue.getUrl(), newValue);
 	}
+	
+	@Override
+	public boolean canRemoveEntry(String key, CacheableBitmapWrapper value) {
+		return !value.isBeingDisplayed();
+	}
 
 	@Override
 	protected void entryRemoved(boolean evicted, String key,
