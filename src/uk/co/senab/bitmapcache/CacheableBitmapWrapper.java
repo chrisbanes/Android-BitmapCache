@@ -17,8 +17,12 @@ public class CacheableBitmapWrapper {
 	private int mCacheCount;
 
 	public CacheableBitmapWrapper(String url, Bitmap bitmap) {
-		mUrl = url;
+		if (null == bitmap) {
+			throw new IllegalArgumentException("Bitmap can not be null");
+		}
+		
 		mBitmap = bitmap;
+		mUrl = url;
 		mImageViewsCount = 0;
 		mCacheCount = 0;
 	}
@@ -55,16 +59,15 @@ public class CacheableBitmapWrapper {
 	 * Returns true when this wrapper has a bitmap and the bitmap has not been
 	 * recycled.
 	 * 
-	 * @return true - if it's bitmap is not null and the bitmap has not been
-	 *         recycled.
+	 * @return true - if the bitmap has not been recycled.
 	 */
 	public boolean hasValidBitmap() {
-		return null != mBitmap && !mBitmap.isRecycled();
+		return !mBitmap.isRecycled();
 	}
 
 	/**
 	 * Used to signal to the wrapper whether it is being referenced by a cache or not.
-	 * @param added - true if the cache has been added to a cache, false if removed.
+	 * @param added - true if the wrapper has been added to a cache, false if removed.
 	 */
 	void setCached(boolean added) {
 		if (added) {
