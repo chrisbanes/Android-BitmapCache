@@ -3,11 +3,10 @@ package uk.co.senab.bitmapcache.cache;
 import java.util.Map.Entry;
 
 import uk.co.senab.bitmapcache.BuildConfig;
-
+import uk.co.senab.util.LruCache;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.support.v4.util.LruCache;
 import android.util.Log;
 
 public class BitmapLruCache extends LruCache<String, CacheableBitmapWrapper> {
