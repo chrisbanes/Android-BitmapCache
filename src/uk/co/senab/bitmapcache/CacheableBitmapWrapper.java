@@ -15,6 +15,10 @@ public class CacheableBitmapWrapper {
 
 	// Number of caches currently referencing the wrapper
 	private int mCacheCount;
+	
+	public CacheableBitmapWrapper(Bitmap bitmap) {
+		this(null, bitmap);
+	}
 
 	public CacheableBitmapWrapper(String url, Bitmap bitmap) {
 		if (null == bitmap) {
