@@ -25,7 +25,7 @@ public class CacheableImageView extends ImageView {
 	 */
 	public void setImageCachedBitmap(final CacheableBitmapWrapper wrapper) {
 		if (null != wrapper) {
-			wrapper.setDisplayed(true);
+			wrapper.setBeingUsed(true);
 			setImageDrawable(new BitmapDrawable(getResources(), wrapper.getBitmap()));
 		} else {
 			setImageDrawable(null);
@@ -66,7 +66,7 @@ public class CacheableImageView extends ImageView {
 	 */
 	private void resetCachedDrawable() {
 		if (null != mDisplayedBitmapWrapper) {
-			mDisplayedBitmapWrapper.setDisplayed(false);
+			mDisplayedBitmapWrapper.setBeingUsed(false);
 			mDisplayedBitmapWrapper = null;
 		}
 	}

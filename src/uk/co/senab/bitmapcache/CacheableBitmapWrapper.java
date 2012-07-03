@@ -4,7 +4,7 @@ import android.graphics.Bitmap;
 import android.util.Log;
 
 public class CacheableBitmapWrapper {
-	
+
 	static final String LOG_TAG = "CacheableBitmapWrapper";
 
 	private final String mUrl;
@@ -15,7 +15,7 @@ public class CacheableBitmapWrapper {
 
 	// Number of caches currently referencing the wrapper
 	private int mCacheCount;
-	
+
 	public CacheableBitmapWrapper(Bitmap bitmap) {
 		this(null, bitmap);
 	}
@@ -24,7 +24,7 @@ public class CacheableBitmapWrapper {
 		if (null == bitmap) {
 			throw new IllegalArgumentException("Bitmap can not be null");
 		}
-		
+
 		mBitmap = bitmap;
 		mUrl = url;
 		mImageViewsCount = 0;
@@ -70,8 +70,12 @@ public class CacheableBitmapWrapper {
 	}
 
 	/**
-	 * Used to signal to the wrapper whether it is being referenced by a cache or not.
-	 * @param added - true if the wrapper has been added to a cache, false if removed.
+	 * Used to signal to the wrapper whether it is being referenced by a cache
+	 * or not.
+	 * 
+	 * @param added
+	 *            - true if the wrapper has been added to a cache, false if
+	 *            removed.
 	 */
 	void setCached(boolean added) {
 		if (added) {
@@ -83,11 +87,14 @@ public class CacheableBitmapWrapper {
 	}
 
 	/**
-	 * Used to signal to the wrapper whether it is being displayed by an ImageView or not.
-	 * @param added - true if displayed, false if not.
+	 * Used to signal to the wrapper whether it is being used or not. Being used
+	 * could be that it is being displayed by an ImageView.
+	 * 
+	 * @param beingUsed
+	 *            - true if being used, false if not.
 	 */
-	void setDisplayed(boolean displayed) {
-		if (displayed) {
+	public void setBeingUsed(boolean beingUsed) {
+		if (beingUsed) {
 			mImageViewsCount++;
 		} else {
 			mImageViewsCount--;
