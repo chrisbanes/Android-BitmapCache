@@ -51,6 +51,10 @@ public class CacheableImageView extends ImageView {
 		super.setImageResource(resId);
 		resetCachedDrawable();
 	}
+	
+	public CacheableBitmapWrapper getCachedBitmapWrapper() {
+		return mDisplayedBitmapWrapper;
+	}
 
 	@Override
 	protected void onDetachedFromWindow() {
