@@ -9,6 +9,9 @@ The basic premise is a LruCache used for Bitmap management on Android. Each Bitm
 
 I have added a sample app to the source since, which can also be downloaded from the Downloads tab above. The sample app shows you how to use the library by creating a ViewPager of images downloaded from the web. These are cached in the LruCache. 
 
+## Download
+The easy way to use the library is by downloading the JAR file under the 'Downloads' tab, and importing it into your Eclipse project.
+
 
 ## License
 
