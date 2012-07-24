@@ -3,7 +3,7 @@ Android-BitmapMemoryCache
 
 ![Screenshot](https://github.com/chrisbanes/Android-BitmapMemoryCache/raw/master/sample_screenshot.jpg)
 
-This project came about as part of my blog post: [http://www.senab.co.uk/2012/07/01/android-bitmap-caching-revisited/]()
+This project came about as part of my blog post: [http://www.senab.co.uk/2012/07/01/android-bitmap-caching-revisited/](http://www.senab.co.uk/2012/07/01/android-bitmap-caching-revisited/)
 
 The basic premise is a LruCache used for Bitmap management on Android. Each Bitmap is reference counted, both my ImageViews and the Cache. When the bitmap is no longer being used or cached, it is recycled and the memory freed.
 
