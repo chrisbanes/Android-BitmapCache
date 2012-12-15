@@ -27,8 +27,10 @@ public class SampleApplication extends Application {
 	public void onCreate() {
 		super.onCreate();
 
-		// Using default constructor, using 1/8th of Heap space (RAM)
-		mCache = new BitmapLruCache(this);
+		BitmapLruCache.Builder builder = new BitmapLruCache.Builder();
+		builder.setMemoryCacheSize(this);
+
+		mCache = builder.build();
 	}
 
 	public BitmapLruCache getBitmapCache() {

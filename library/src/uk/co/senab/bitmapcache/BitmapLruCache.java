@@ -1,96 +1,36 @@
-/*******************************************************************************
- * Copyright 2011, 2012 Chris Banes.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *******************************************************************************/
 package uk.co.senab.bitmapcache;
 
-import java.util.Map.Entry;
-
-import uk.co.senab.util.LruCache;
 import android.app.ActivityManager;
 import android.content.Context;
-import android.graphics.Bitmap;
 
-public class BitmapLruCache extends LruCache<String, CacheableBitmapWrapper> {
+import com.jakewharton.DiskLruCache;
 
-	static final float DEFAULT_CACHE_SIZE = 1f / 8f;
-	static final float MAX_CACHE_SIZE = 1f;
+public class BitmapLruCache {
 
-	static final String LOG_TAG = "BitmapLruCache";
-	static final int MEGABYTE = 1024 * 1024;
+	private DiskLruCache mDiskCache;
+	private BitmapMemoryLruCache mMemoryCache;
 
-	/**
-	 * Initialise LruCache with default size of {@value #DEFAULT_CACHE_SIZE} of heap size.
-	 * 
-	 * @param context - context
-	 */
-	public BitmapLruCache(Context context) {
-		this(context, DEFAULT_CACHE_SIZE);
+	void setDiskLruCache(DiskLruCache cache) {
+		mDiskCache = cache;
 	}
 
-	/**
-	 * Initialise LruCache with the given percentage of heap size. This is
-	 * capped at {@value #MAX_CACHE_SIZE} denoting 100% of the app heap size.
-	 * 
-	 * @param context
-	 *            - Context
-	 * @param percentageOfHeap
-	 *            - percentage of heap size. Valid values are 0.0 <= x <= 1.0.
-	 */
-	public BitmapLruCache(Context context, float percentageOfHeap) {
-		this(Math.round(MEGABYTE * getHeapSize(context)
-				* Math.min(percentageOfHeap, MAX_CACHE_SIZE)));
+	void setMemoryLruCache(BitmapMemoryLruCache cache) {
+		mMemoryCache = cache;
 	}
 
-	public BitmapLruCache(int maxSize) {
-		super(maxSize);
-	}
-
-	@Override
-	protected int sizeOf(String key, CacheableBitmapWrapper value) {
-		if (value.hasValidBitmap()) {
-			Bitmap bitmap = value.getBitmap();
-			return bitmap.getRowBytes() * bitmap.getHeight();
+	public CacheableBitmapWrapper get(String url) {
+		if (null != mMemoryCache) {
+			return mMemoryCache.get(url);
 		}
-		return 0;
+
+		return null;
 	}
 
-	/**
-	 * Convenience method that just calls through to
-	 * {@link LruCache#put(K key, V value) } with the Key as
-	 * {@link CacheableBitmapWrapper#getUrl() }
-	 * 
-	 * @param newValue
-	 *            - Value to put into cache
-	 * @return oldValue
-	 */
-	public CacheableBitmapWrapper put(CacheableBitmapWrapper newValue) {
-		return put(newValue.getUrl(), newValue);
-	}
-
-	@Override
-	public CacheableBitmapWrapper put(String key, CacheableBitmapWrapper value) {
-		// Notify the wrapper that it's being cached
-		value.setCached(true);
-		return super.put(key, value);
-	}
-
-	@Override
-	protected void entryRemoved(boolean evicted, String key,
-			CacheableBitmapWrapper oldValue, CacheableBitmapWrapper newValue) {
-		// Notify the wrapper that it's no longer being cached
-		oldValue.setCached(false);
+	public void put(CacheableBitmapWrapper value) {
+		if (null != mMemoryCache) {
+			value.setCached(true);
+			mMemoryCache.put(value.getUrl(), value);
+		}
 	}
 
 	/**
@@ -100,17 +40,65 @@ public class BitmapLruCache extends LruCache<String, CacheableBitmapWrapper> {
 	 * Application.onLowMemory()}.
 	 */
 	public void trimMemory() {
-		for (Entry<String, CacheableBitmapWrapper> entry : snapshot()
-				.entrySet()) {
-			CacheableBitmapWrapper value = entry.getValue();
-			if (null == value || !value.isBeingDisplayed()) {
-				remove(entry.getKey());
-			}
+		if (null != mMemoryCache) {
+			mMemoryCache.trimMemory();
 		}
 	}
 
-	private static int getHeapSize(Context context) {
-		return ((ActivityManager) context
-				.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryClass();
+	public static class Builder {
+
+		static final float DEFAULT_CACHE_SIZE = 1f / 8f;
+		static final float MAX_CACHE_SIZE = 0.75f;
+		static final int MEGABYTE = 1024 * 1024;
+
+		private boolean mValidMemoryCache;
+		private boolean mValidDiskCache;
+
+		private int mMemoryCacheSize;
+
+		public Builder setMemoryCacheSize(int size) {
+			mMemoryCacheSize = size;
+			mValidMemoryCache = true;
+			return this;
+		}
+
+		/**
+		 * Sets the Memory Cache size to be the given percentage of heap size.
+		 * This is capped at {@value #MAX_CACHE_SIZE} denoting 75% of the app
+		 * heap size.
+		 * 
+		 * @param context - Context
+		 * @param percentageOfHeap - percentage of heap size. Valid values are
+		 *            0.0 <= x <= {@value #MAX_CACHE_SIZE}.
+		 */
+		public Builder setMemoryCacheSize(Context context, float percentageOfHeap) {
+			int size = Math.round(MEGABYTE * getHeapSize(context) * Math.min(percentageOfHeap, MAX_CACHE_SIZE));
+			return setMemoryCacheSize(size);
+		}
+
+		/**
+		 * Initialise LruCache with default size of {@value #DEFAULT_CACHE_SIZE}
+		 * of heap size.
+		 * 
+		 * @param context - context
+		 */
+		public Builder setMemoryCacheSize(Context context) {
+			return setMemoryCacheSize(context, DEFAULT_CACHE_SIZE);
+		}
+
+		public BitmapLruCache build() {
+			BitmapLruCache cache = new BitmapLruCache();
+
+			if (mValidMemoryCache) {
+				BitmapMemoryLruCache memoryCache = new BitmapMemoryLruCache(mMemoryCacheSize);
+				cache.setMemoryLruCache(memoryCache);
+			}
+
+			return cache;
+		}
+
+		private static int getHeapSize(Context context) {
+			return ((ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryClass();
+		}
 	}
 }
