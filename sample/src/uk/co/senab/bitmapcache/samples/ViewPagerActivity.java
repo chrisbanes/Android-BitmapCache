@@ -33,7 +33,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;
 
-public class SampleActivity extends Activity {
+public class ViewPagerActivity extends Activity {
 
 	static final int PUG_COUNT = 20;
 
@@ -88,7 +88,7 @@ public class SampleActivity extends Activity {
 		protected void onPostExecute(ArrayList<String> result) {
 			super.onPostExecute(result);
 
-			PugAdapter adapter = new PugAdapter(SampleActivity.this, result);
+			PugPagerAdapter adapter = new PugPagerAdapter(ViewPagerActivity.this, result);
 			mViewPager.setAdapter(adapter);
 		}
 

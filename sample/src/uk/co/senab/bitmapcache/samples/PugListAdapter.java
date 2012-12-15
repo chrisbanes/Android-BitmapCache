@@ -17,24 +17,21 @@ package uk.co.senab.bitmapcache.samples;
 
 import java.util.ArrayList;
 
-import uk.co.senab.bitmapcache.BitmapLruCache;
 import android.content.Context;
-import android.support.v4.view.PagerAdapter;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewGroup.LayoutParams;
-import android.widget.ImageView.ScaleType;
+import android.widget.BaseAdapter;
+import android.widget.TextView;
 
-public class PugAdapter extends PagerAdapter {
+public class PugListAdapter extends BaseAdapter {
 
 	private final ArrayList<String> mPugUrls;
 	private final Context mContext;
-	private final BitmapLruCache mCache;
 
-	public PugAdapter(Context context, ArrayList<String> pugUrls) {
+	public PugListAdapter(Context context, ArrayList<String> pugUrls) {
 		mPugUrls = pugUrls;
 		mContext = context;
-		mCache = SampleApplication.getApplication(context).getBitmapCache();
 	}
 
 	@Override
@@ -43,26 +40,35 @@ public class PugAdapter extends PagerAdapter {
 	}
 
 	@Override
-	public View instantiateItem(ViewGroup container, int position) {
-		NetworkedCacheableImageView imageView = new NetworkedCacheableImageView(mContext, mCache);
-
-		String pugUrl = mPugUrls.get(position);
-		imageView.loadImage(mCache, pugUrl);
-
-		imageView.setScaleType(ScaleType.FIT_CENTER);
-		container.addView(imageView, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
-
-		return imageView;
+	public String getItem(int position) {
+		return mPugUrls.get(position);
 	}
 
 	@Override
-	public void destroyItem(ViewGroup container, int position, Object object) {
-		container.removeView((View) object);
+	public long getItemId(int position) {
+		return position;
 	}
 
 	@Override
-	public boolean isViewFromObject(View view, Object object) {
-		return view == object;
+	public View getView(int position, View convertView, ViewGroup parent) {
+		if (null == convertView) {
+			convertView = LayoutInflater.from(mContext).inflate(R.layout.gridview_item_layout, parent, false);
+		}
+
+		NetworkedCacheableImageView imageView = (NetworkedCacheableImageView) convertView.findViewById(R.id.nciv_pug);
+		TextView status = (TextView) convertView.findViewById(R.id.tv_status);
+
+		final boolean fromCache = imageView.loadImage(mPugUrls.get(position), false);
+
+		if (fromCache) {
+			status.setText("From Cache");
+			status.setBackgroundColor(mContext.getResources().getColor(R.color.translucent_green));
+		} else {
+			status.setText("From Web");
+			status.setBackgroundColor(mContext.getResources().getColor(R.color.translucent_red));
+		}
+
+		return convertView;
 	}
 
 }

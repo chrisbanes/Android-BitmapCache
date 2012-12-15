@@ -29,6 +29,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.util.AttributeSet;
 
 /**
  * Simple extension of CacheableImageView which allows downloading of Images of
@@ -42,9 +43,17 @@ import android.os.AsyncTask;
 public class NetworkedCacheableImageView extends CacheableImageView {
 
 	/**
-	 * This task simply gets a list of URLs of Pug Photos
+	 * This task simply fetches an Bitmap from the specified URL and wraps it in
+	 * a wrapper. This implementation is NOT 'best practice' or production ready
+	 * code.
 	 */
 	private class ImageUrlAsyncTask extends AsyncTask<String, Void, CacheableBitmapWrapper> {
+
+		private final boolean mFullSize;
+
+		public ImageUrlAsyncTask(boolean fullSize) {
+			mFullSize = fullSize;
+		}
 
 		@Override
 		protected CacheableBitmapWrapper doInBackground(String... params) {
@@ -53,7 +62,13 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 
 				HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
 				InputStream is = new BufferedInputStream(conn.getInputStream());
-				Bitmap bitmap = BitmapFactory.decodeStream(is);
+
+				BitmapFactory.Options opts = new BitmapFactory.Options();
+				if (!mFullSize) {
+					opts.inSampleSize = 2;
+				}
+
+				Bitmap bitmap = BitmapFactory.decodeStream(is, null, opts);
 
 				if (null != bitmap) {
 					return new CacheableBitmapWrapper(url, bitmap);
@@ -83,12 +98,23 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 	private final BitmapLruCache mCache;
 	private ImageUrlAsyncTask mCurrentTask;
 
-	public NetworkedCacheableImageView(Context context, BitmapLruCache cache) {
-		super(context);
-		mCache = cache;
+	public NetworkedCacheableImageView(Context context, AttributeSet attrs) {
+		super(context, attrs);
+		mCache = SampleApplication.getApplication(context).getBitmapCache();
 	}
 
-	public void loadImage(BitmapLruCache cache, String url) {
+	public boolean loadImage(String url) {
+		return loadImage(url, true);
+	}
+
+	/**
+	 * Loads the Bitmap.
+	 * 
+	 * @param url - URL of image
+	 * @param fullSize - Whether the image should be kept at the original size
+	 * @return true if the bitmap was found in the cache
+	 */
+	public boolean loadImage(String url, final boolean fullSize) {
 		// First check whether there's already a task running, if so cancel it
 		if (null != mCurrentTask) {
 			mCurrentTask.cancel(false);
@@ -100,10 +126,14 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 		if (null != wrapper && wrapper.hasValidBitmap()) {
 			// The cache has it, so just display it
 			setImageCachedBitmap(wrapper);
+			return true;
 		} else {
 			// Cache doesn't have the URL, do network request...
-			mCurrentTask = new ImageUrlAsyncTask();
+			setImageCachedBitmap(null);
+
+			mCurrentTask = new ImageUrlAsyncTask(fullSize);
 			mCurrentTask.execute(url);
+			return false;
 		}
 	}
 
