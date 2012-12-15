@@ -35,7 +35,7 @@ import android.widget.GridView;
 
 public class GridViewActivity extends Activity {
 
-	static final int PUG_COUNT = 20;
+	static final int PUG_COUNT = 60;
 
 	/**
 	 * This task simply gets a list of URLs of Photos from PugMe
@@ -103,7 +103,7 @@ public class GridViewActivity extends Activity {
 		setContentView(R.layout.activity_gridview);
 
 		mGridView = (GridView) findViewById(R.id.gridView1);
-		
+
 		// Start Pug List Download
 		new PugListAsyncTask().execute();
 	}
