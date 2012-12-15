@@ -1,7 +1,7 @@
-Android-BitmapMemoryCache
+Android-BitmapCache
 =========================
 
-![Screenshot](https://github.com/chrisbanes/Android-BitmapMemoryCache/raw/master/sample_screenshot.jpg)
+![Screenshot](https://github.com/chrisbanes/Android-BitmapCache/raw/master/sample_screenshot.jpg)
 
 This project came about as part of my blog post: [http://www.senab.co.uk/2012/07/01/android-bitmap-caching-revisited/](http://www.senab.co.uk/2012/07/01/android-bitmap-caching-revisited/)
 
