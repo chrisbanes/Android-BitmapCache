@@ -87,11 +87,13 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 		protected void onPostExecute(CacheableBitmapWrapper result) {
 			super.onPostExecute(result);
 
-			// Display the image
-			setImageCachedBitmap(result);
+			if (null != result) {
+				// Display the image
+				setImageCachedBitmap(result);
 
-			// Add to cache
-			mCache.put(result);
+				// Add to cache
+				mCache.put(result);
+			}
 		}
 	}
 
