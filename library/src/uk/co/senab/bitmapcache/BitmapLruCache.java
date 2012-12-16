@@ -1,9 +1,17 @@
 package uk.co.senab.bitmapcache;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
 import android.app.ActivityManager;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 
 import com.jakewharton.DiskLruCache;
+import com.jakewharton.DiskLruCache.Editor;
 
 public class BitmapLruCache {
 
@@ -26,10 +34,63 @@ public class BitmapLruCache {
 		return null;
 	}
 
-	public void put(CacheableBitmapWrapper value) {
+	public void put(String url, InputStream inputStream) {
+		// First we need to save the stream contents to a temporary file, so it
+		// can be read multiple times
+		File tmpFile = null;
+		try {
+			tmpFile = File.createTempFile("bitmapcache_", null);
+
+			// Pipe InputStream to file
+			// TODO Add Buffered Layer
+			Util.pipe(inputStream, new FileOutputStream(tmpFile));
+
+			// Close the original InputStream
+			try {
+				inputStream.close();
+			} finally {
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		if (null != tmpFile) {
+			if (null != mDiskCache) {
+				try {
+					Editor editor = mDiskCache.edit(url);
+					if (null != editor) {
+						Util.pipe(inputStream, editor.newOutputStream(0));
+						editor.commit();
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+			if (null != mMemoryCache) {
+				putIntoMemoryCache(url, BitmapFactory.decodeFile(tmpFile.getAbsolutePath()));
+			}
+
+			// Finally, delete the temporary file
+			tmpFile.delete();
+		}
+	}
+
+	public void put(String url, Bitmap bitmap) {
+		if (null != mDiskCache) {
+			try {
+				Editor editor = mDiskCache.edit(url);
+				if (null != editor) {
+					Util.saveBitmap(bitmap, editor.newOutputStream(0));
+					editor.commit();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
 		if (null != mMemoryCache) {
-			value.setCached(true);
-			mMemoryCache.put(value.getUrl(), value);
+			putIntoMemoryCache(url, bitmap);
 		}
 	}
 
@@ -42,6 +103,16 @@ public class BitmapLruCache {
 	public void trimMemory() {
 		if (null != mMemoryCache) {
 			mMemoryCache.trimMemory();
+		}
+	}
+
+	private void putIntoMemoryCache(String url, Bitmap bitmap) {
+		if (null != bitmap) {
+			CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
+			wrapper.setCached(true);
+			mMemoryCache.put(url, wrapper);
+		} else {
+			// TODO Add log here
 		}
 	}
 
