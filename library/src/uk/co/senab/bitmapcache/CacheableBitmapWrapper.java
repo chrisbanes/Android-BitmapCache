@@ -31,11 +31,11 @@ public class CacheableBitmapWrapper {
 	// Number of caches currently referencing the wrapper
 	private int mCacheCount;
 
-	public CacheableBitmapWrapper(Bitmap bitmap) {
+	CacheableBitmapWrapper(Bitmap bitmap) {
 		this(null, bitmap);
 	}
 
-	public CacheableBitmapWrapper(String url, Bitmap bitmap) {
+	CacheableBitmapWrapper(String url, Bitmap bitmap) {
 		if (null == bitmap) {
 			throw new IllegalArgumentException("Bitmap can not be null");
 		}

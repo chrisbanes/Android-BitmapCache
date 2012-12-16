@@ -26,8 +26,6 @@ import uk.co.senab.bitmapcache.BitmapLruCache;
 import uk.co.senab.bitmapcache.CacheableBitmapWrapper;
 import uk.co.senab.bitmapcache.CacheableImageView;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.AttributeSet;
 
@@ -63,16 +61,8 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 				HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
 				InputStream is = new BufferedInputStream(conn.getInputStream());
 
-				BitmapFactory.Options opts = new BitmapFactory.Options();
-				if (!mFullSize) {
-					opts.inSampleSize = 2;
-				}
-
-				Bitmap bitmap = BitmapFactory.decodeStream(is, null, opts);
-
-				if (null != bitmap) {
-					return new CacheableBitmapWrapper(url, bitmap);
-				}
+				// Add to cache
+				return mCache.put(url, is);
 
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
@@ -87,13 +77,8 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 		protected void onPostExecute(CacheableBitmapWrapper result) {
 			super.onPostExecute(result);
 
-			if (null != result) {
-				// Display the image
-				setImageCachedBitmap(result);
-
-				// Add to cache
-				mCache.put(result);
-			}
+			// Display the image
+			setImageCachedBitmap(result);
 		}
 	}
 

@@ -9,32 +9,69 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 
 import com.jakewharton.DiskLruCache;
-import com.jakewharton.DiskLruCache.Editor;
 
 public class BitmapLruCache {
 
+	private static String transformUrlForDiskCacheKey(String url) {
+		return Util.md5(url);
+	}
+
 	private DiskLruCache mDiskCache;
 	private BitmapMemoryLruCache mMemoryCache;
-
-	void setDiskLruCache(DiskLruCache cache) {
-		mDiskCache = cache;
-	}
-
-	void setMemoryLruCache(BitmapMemoryLruCache cache) {
-		mMemoryCache = cache;
-	}
 
 	public CacheableBitmapWrapper get(String url) {
 		if (null != mMemoryCache) {
 			return mMemoryCache.get(url);
 		}
 
+		if (null != mDiskCache) {
+			try {
+				DiskLruCache.Snapshot snapshot = mDiskCache.get(transformUrlForDiskCacheKey(url));
+				if (null != snapshot) {
+					// Try and decode bitmap
+					Bitmap bitmap = BitmapFactory.decodeStream(snapshot.getInputStream(0));
+					if (null != bitmap) {
+						CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
+						putIntoMemoryCache(wrapper);
+						return wrapper;
+					} else {
+						// TODO Remove from Disk Cache?
+					}
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
 		return null;
 	}
 
-	public void put(String url, InputStream inputStream) {
+	public CacheableBitmapWrapper put(String url, Bitmap bitmap) {
+		CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
+
+		if (null != mDiskCache) {
+			try {
+				DiskLruCache.Editor editor = mDiskCache.edit(transformUrlForDiskCacheKey(url));
+				if (null != editor) {
+					Util.saveBitmap(bitmap, editor.newOutputStream(0));
+					editor.commit();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		if (null != mMemoryCache) {
+			putIntoMemoryCache(wrapper);
+		}
+
+		return wrapper;
+	}
+
+	public CacheableBitmapWrapper put(String url, InputStream inputStream) {
 		// First we need to save the stream contents to a temporary file, so it
 		// can be read multiple times
 		File tmpFile = null;
@@ -54,10 +91,14 @@ public class BitmapLruCache {
 			e.printStackTrace();
 		}
 
+		CacheableBitmapWrapper wrapper = null;
+
 		if (null != tmpFile) {
+			wrapper = new CacheableBitmapWrapper(url, BitmapFactory.decodeFile(tmpFile.getAbsolutePath()));
+
 			if (null != mDiskCache) {
 				try {
-					Editor editor = mDiskCache.edit(url);
+					DiskLruCache.Editor editor = mDiskCache.edit(transformUrlForDiskCacheKey(url));
 					if (null != editor) {
 						Util.pipe(inputStream, editor.newOutputStream(0));
 						editor.commit();
@@ -68,30 +109,15 @@ public class BitmapLruCache {
 			}
 
 			if (null != mMemoryCache) {
-				putIntoMemoryCache(url, BitmapFactory.decodeFile(tmpFile.getAbsolutePath()));
+				wrapper.setCached(true);
+				mMemoryCache.put(wrapper.getUrl(), wrapper);
 			}
 
 			// Finally, delete the temporary file
 			tmpFile.delete();
 		}
-	}
 
-	public void put(String url, Bitmap bitmap) {
-		if (null != mDiskCache) {
-			try {
-				Editor editor = mDiskCache.edit(url);
-				if (null != editor) {
-					Util.saveBitmap(bitmap, editor.newOutputStream(0));
-					editor.commit();
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		if (null != mMemoryCache) {
-			putIntoMemoryCache(url, bitmap);
-		}
+		return wrapper;
 	}
 
 	/**
@@ -106,70 +132,125 @@ public class BitmapLruCache {
 		}
 	}
 
-	private void putIntoMemoryCache(String url, Bitmap bitmap) {
-		if (null != bitmap) {
-			CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
-			wrapper.setCached(true);
-			mMemoryCache.put(url, wrapper);
-		} else {
-			// TODO Add log here
-		}
+	void setDiskLruCache(DiskLruCache cache) {
+		mDiskCache = cache;
+	}
+
+	void setMemoryLruCache(BitmapMemoryLruCache cache) {
+		mMemoryCache = cache;
+	}
+
+	private void putIntoMemoryCache(CacheableBitmapWrapper wrapper) {
+		wrapper.setCached(true);
+		mMemoryCache.put(wrapper.getUrl(), wrapper);
 	}
 
 	public static class Builder {
 
-		static final float DEFAULT_CACHE_SIZE = 1f / 8f;
-		static final float MAX_CACHE_SIZE = 0.75f;
 		static final int MEGABYTE = 1024 * 1024;
 
-		private boolean mValidMemoryCache;
-		private boolean mValidDiskCache;
+		static final float DEFAULT_MEMORY_CACHE_HEAP_RATIO = 1f / 8f;
+		static final int DEFAULT_DISK_CACHE_MAX_SIZE = MEGABYTE * 10;
 
-		private int mMemoryCacheSize;
+		static final float MAX_MEMORY_CACHE_HEAP_RATIO = 0.75f;
 
-		public Builder setMemoryCacheSize(int size) {
-			mMemoryCacheSize = size;
-			mValidMemoryCache = true;
-			return this;
+		private static int getHeapSize(Context context) {
+			return ((ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryClass();
 		}
 
-		/**
-		 * Sets the Memory Cache size to be the given percentage of heap size.
-		 * This is capped at {@value #MAX_CACHE_SIZE} denoting 75% of the app
-		 * heap size.
-		 * 
-		 * @param context - Context
-		 * @param percentageOfHeap - percentage of heap size. Valid values are
-		 *            0.0 <= x <= {@value #MAX_CACHE_SIZE}.
-		 */
-		public Builder setMemoryCacheSize(Context context, float percentageOfHeap) {
-			int size = Math.round(MEGABYTE * getHeapSize(context) * Math.min(percentageOfHeap, MAX_CACHE_SIZE));
-			return setMemoryCacheSize(size);
-		}
+		private boolean mDiskCacheEnabled;
+		private File mDiskCacheLocation;
+		private long mDiskCacheMaxSize;
 
-		/**
-		 * Initialise LruCache with default size of {@value #DEFAULT_CACHE_SIZE}
-		 * of heap size.
-		 * 
-		 * @param context - context
-		 */
-		public Builder setMemoryCacheSize(Context context) {
-			return setMemoryCacheSize(context, DEFAULT_CACHE_SIZE);
+		private boolean mMemoryCacheEnabled;
+		private int mMemoryCacheMaxSize;
+
+		public Builder() {
+			mDiskCacheMaxSize = DEFAULT_DISK_CACHE_MAX_SIZE;
+
+			// Memory Cache is enabled by default
+			mMemoryCacheEnabled = true;
 		}
 
 		public BitmapLruCache build() {
 			BitmapLruCache cache = new BitmapLruCache();
 
-			if (mValidMemoryCache) {
-				BitmapMemoryLruCache memoryCache = new BitmapMemoryLruCache(mMemoryCacheSize);
+			if (isValidOptionsForMemoryCache()) {
+				Log.d("BitmapLruCache.Builder", "Creating Memory Cache");
+				BitmapMemoryLruCache memoryCache = new BitmapMemoryLruCache(mMemoryCacheMaxSize);
 				cache.setMemoryLruCache(memoryCache);
+			}
+
+			if (isValidOptionsForDiskCache()) {
+				try {
+					DiskLruCache diskCache = DiskLruCache.open(mDiskCacheLocation, 0, 1, mDiskCacheMaxSize);
+					cache.setDiskLruCache(diskCache);
+					Log.d("BitmapLruCache.Builder", "Created Memory Cache");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 
 			return cache;
 		}
 
-		private static int getHeapSize(Context context) {
-			return ((ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryClass();
+		public Builder setDiskCacheEnabled(boolean enabled) {
+			mDiskCacheEnabled = enabled;
+			return this;
+		}
+
+		public Builder setDiskCacheLocation(File location) {
+			mDiskCacheLocation = location;
+			return this;
+		}
+
+		public Builder setDiskCacheMaxSize(long maxSize) {
+			mDiskCacheMaxSize = maxSize;
+			return this;
+		}
+
+		public Builder setMemoryCacheEnabled(boolean enabled) {
+			mMemoryCacheEnabled = enabled;
+			return this;
+		}
+
+		public Builder setMemoryCacheMaxSize(int size) {
+			mMemoryCacheMaxSize = size;
+			return this;
+		}
+
+		/**
+		 * Initialise LruCache with default size of
+		 * {@value #DEFAULT_MEMORY_CACHE_HEAP_RATIO} of heap size.
+		 * 
+		 * @param context - context
+		 */
+		public Builder setMemoryCacheMaxSizeUsingHeapSize(Context context) {
+			return setMemoryCacheMaxSizeUsingHeapSize(context, DEFAULT_MEMORY_CACHE_HEAP_RATIO);
+		}
+
+		/**
+		 * Sets the Memory Cache size to be the given percentage of heap size.
+		 * This is capped at {@value #MAX_MEMORY_CACHE_HEAP_RATIO} denoting 75%
+		 * of the app heap size.
+		 * 
+		 * @param context - Context
+		 * @param percentageOfHeap - percentage of heap size. Valid values are
+		 *            0.0 <= x <= {@value #MAX_MEMORY_CACHE_HEAP_RATIO}.
+		 */
+		public Builder setMemoryCacheMaxSizeUsingHeapSize(Context context, float percentageOfHeap) {
+			int size = Math.round(MEGABYTE * getHeapSize(context)
+					* Math.min(percentageOfHeap, MAX_MEMORY_CACHE_HEAP_RATIO));
+			return setMemoryCacheMaxSize(size);
+		}
+
+		private boolean isValidOptionsForDiskCache() {
+			return mDiskCacheEnabled && null != mDiskCacheLocation;
+
+		}
+
+		private boolean isValidOptionsForMemoryCache() {
+			return mMemoryCacheEnabled && mMemoryCacheMaxSize > 0;
 		}
 	}
 }
