@@ -23,22 +23,28 @@ public class BitmapLruCache {
 	private BitmapMemoryLruCache mMemoryCache;
 
 	public CacheableBitmapWrapper get(String url) {
+		CacheableBitmapWrapper result = null;
+
 		if (null != mMemoryCache) {
-			return mMemoryCache.get(url);
+			// First try Memory Cache
+			result = mMemoryCache.get(url);
 		}
 
-		if (null != mDiskCache) {
+		if (null == result && null != mDiskCache) {
+			// Memory Cache failed, so try Disk Cache
 			try {
 				DiskLruCache.Snapshot snapshot = mDiskCache.get(transformUrlForDiskCacheKey(url));
 				if (null != snapshot) {
 					// Try and decode bitmap
 					Bitmap bitmap = BitmapFactory.decodeStream(snapshot.getInputStream(0));
+
 					if (null != bitmap) {
-						CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
-						putIntoMemoryCache(wrapper);
-						return wrapper;
+						result = new CacheableBitmapWrapper(url, bitmap);
+						putIntoMemoryCache(result);
 					} else {
-						// TODO Remove from Disk Cache?
+						// If we get here, the file in the cache can't be
+						// decoded. Remove it.
+						mDiskCache.remove(transformUrlForDiskCacheKey(url));
 					}
 				}
 			} catch (IOException e) {
@@ -46,7 +52,7 @@ public class BitmapLruCache {
 			}
 		}
 
-		return null;
+		return result;
 	}
 
 	public CacheableBitmapWrapper put(String url, Bitmap bitmap) {
