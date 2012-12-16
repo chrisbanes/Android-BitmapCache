@@ -77,7 +77,7 @@ public class BitmapLruCache {
 		return wrapper;
 	}
 
-	public CacheableBitmapWrapper put(String url, InputStream inputStream) {
+	public CacheableBitmapWrapper put(final String url, final InputStream inputStream) {
 		// First we need to save the stream contents to a temporary file, so it
 		// can be read multiple times
 		File tmpFile = null;
@@ -106,7 +106,7 @@ public class BitmapLruCache {
 				try {
 					DiskLruCache.Editor editor = mDiskCache.edit(transformUrlForDiskCacheKey(url));
 					if (null != editor) {
-						Util.pipe(inputStream, editor.newOutputStream(0));
+						Util.pipe(tmpFile, editor.newOutputStream(0));
 						editor.commit();
 					}
 				} catch (IOException e) {

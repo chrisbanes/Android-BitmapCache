@@ -1,5 +1,7 @@
 package uk.co.senab.bitmapcache;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -10,6 +12,10 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 
 public class Util {
+
+	public static void pipe(File file, OutputStream out) throws IOException {
+		pipe(new FileInputStream(file), out);
+	}
 
 	/**
 	 * Pipe an InputStream to the given OutputStream
@@ -37,7 +43,7 @@ public class Util {
 			// Create MD5 Hash
 			MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
 			digest.update(string.getBytes());
-			
+
 			byte messageDigest[] = digest.digest();
 
 			// Create Hex String
