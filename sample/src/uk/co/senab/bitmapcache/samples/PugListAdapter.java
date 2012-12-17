@@ -61,10 +61,10 @@ public class PugListAdapter extends BaseAdapter {
 		final boolean fromCache = imageView.loadImage(mPugUrls.get(position), false);
 
 		if (fromCache) {
-			status.setText("From Cache");
+			status.setText("From Memory Cache");
 			status.setBackgroundColor(mContext.getResources().getColor(R.color.translucent_green));
 		} else {
-			status.setText("From Web");
+			status.setText("From Disk/Network");
 			status.setBackgroundColor(mContext.getResources().getColor(R.color.translucent_red));
 		}
 
