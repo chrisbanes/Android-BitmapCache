@@ -21,8 +21,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
@@ -35,27 +33,6 @@ class Util {
 
 	static long copy(InputStream in, File out) throws IOException {
 		return copy(in, new FileOutputStream(out));
-	}
-
-	static String md5(String string) {
-		try {
-			// Create MD5 Hash
-			MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
-			digest.update(string.getBytes());
-
-			byte messageDigest[] = digest.digest();
-
-			// Create Hex String
-			StringBuffer hexString = new StringBuffer();
-			for (int i = 0, z = messageDigest.length; i < z; i++) {
-				hexString.append(Integer.toHexString(0xFF & messageDigest[i]));
-			}
-			return hexString.toString();
-
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-		return null;
 	}
 
 	static void saveBitmap(Bitmap bitmap, OutputStream out) {

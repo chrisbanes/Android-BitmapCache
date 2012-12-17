@@ -76,7 +76,7 @@ public class BitmapLruCache {
 	 * @return key which can be used for the disk cache
 	 */
 	private static String transformUrlForDiskCacheKey(String url) {
-		return Util.md5(url);
+		return Md5.encode(url);
 	}
 
 	private final DiskLruCache mDiskCache;
