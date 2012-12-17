@@ -4,15 +4,23 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Process;
 import android.util.Log;
 
 import com.jakewharton.DiskLruCache;
 
 public class BitmapLruCache {
+
+	// The number of seconds after the last edit that the Disk Cache should be
+	// flushed
+	static final int DISK_CACHE_FLUSH_DELAY_SECS = 5;
 
 	/**
 	 * The disk cache only accepts a reduced range of characters for the key
@@ -27,13 +35,30 @@ public class BitmapLruCache {
 		return Util.md5(url);
 	}
 
-	private DiskLruCache mDiskCache;
-	private BitmapMemoryLruCache mMemoryCache;
+	private final DiskLruCache mDiskCache;
+	private final BitmapMemoryLruCache mMemoryCache;
 
+	// Variable which are only used when the Disk Cache is enabled
 	private final HashMap<String, ReentrantLock> mDiskCacheEditLocks;
+	private final ScheduledThreadPoolExecutor mDiskCacheFlusherExecutor;
+	private final DiskCacheFlushRunnable mDiskCacheFlusherRunnable;
 
-	protected BitmapLruCache() {
-		mDiskCacheEditLocks = new HashMap<String, ReentrantLock>();
+	// Transient
+	private ScheduledFuture<?> mDiskCacheFuture;
+
+	protected BitmapLruCache(BitmapMemoryLruCache memoryCache, DiskLruCache diskCache) {
+		mMemoryCache = memoryCache;
+		mDiskCache = diskCache;
+
+		if (null != diskCache) {
+			mDiskCacheEditLocks = new HashMap<String, ReentrantLock>();
+			mDiskCacheFlusherExecutor = new ScheduledThreadPoolExecutor(1);
+			mDiskCacheFlusherRunnable = new DiskCacheFlushRunnable(diskCache);
+		} else {
+			mDiskCacheEditLocks = null;
+			mDiskCacheFlusherExecutor = null;
+			mDiskCacheFlusherRunnable = null;
+		}
 	}
 
 	/**
@@ -148,6 +173,7 @@ public class BitmapLruCache {
 				e.printStackTrace();
 			} finally {
 				lock.unlock();
+				scheduleDiskCacheFlush();
 			}
 		}
 
@@ -215,6 +241,7 @@ public class BitmapLruCache {
 						e.printStackTrace();
 					} finally {
 						lock.unlock();
+						scheduleDiskCacheFlush();
 					}
 				}
 
@@ -244,14 +271,6 @@ public class BitmapLruCache {
 		}
 	}
 
-	void setDiskLruCache(DiskLruCache cache) {
-		mDiskCache = cache;
-	}
-
-	void setMemoryLruCache(BitmapMemoryLruCache cache) {
-		mMemoryCache = cache;
-	}
-
 	private ReentrantLock getLockForDiskCacheEdit(String url) {
 		synchronized (mDiskCacheEditLocks) {
 			ReentrantLock lock = mDiskCacheEditLocks.get(url);
@@ -268,6 +287,15 @@ public class BitmapLruCache {
 		mMemoryCache.put(wrapper.getUrl(), wrapper);
 	}
 
+	private void scheduleDiskCacheFlush() {
+		if (null != mDiskCacheFuture) {
+			mDiskCacheFuture.cancel(false);
+		}
+
+		mDiskCacheFuture = mDiskCacheFlusherExecutor.schedule(mDiskCacheFlusherRunnable, DISK_CACHE_FLUSH_DELAY_SECS,
+				TimeUnit.SECONDS);
+	}
+
 	/**
 	 * Builder class for {link {@link BitmapLruCache}. An example call:
 	 * 
@@ -281,7 +309,7 @@ public class BitmapLruCache {
 	 * 
 	 * @author Chris Banes
 	 */
-	public static class Builder {
+	public final static class Builder {
 
 		static final int MEGABYTE = 1024 * 1024;
 
@@ -320,25 +348,28 @@ public class BitmapLruCache {
 		 *         supplied to this builder.
 		 */
 		public BitmapLruCache build() {
-			BitmapLruCache cache = new BitmapLruCache();
+			BitmapMemoryLruCache memoryCache = null;
+			DiskLruCache diskCache = null;
 
 			if (isValidOptionsForMemoryCache()) {
-				Log.d("BitmapLruCache.Builder", "Creating Memory Cache");
-				BitmapMemoryLruCache memoryCache = new BitmapMemoryLruCache(mMemoryCacheMaxSize);
-				cache.setMemoryLruCache(memoryCache);
+				if (Constants.DEBUG) {
+					Log.d("BitmapLruCache.Builder", "Creating Memory Cache");
+				}
+				memoryCache = new BitmapMemoryLruCache(mMemoryCacheMaxSize);
 			}
 
 			if (isValidOptionsForDiskCache()) {
 				try {
-					DiskLruCache diskCache = DiskLruCache.open(mDiskCacheLocation, 0, 1, mDiskCacheMaxSize);
-					cache.setDiskLruCache(diskCache);
-					Log.d("BitmapLruCache.Builder", "Created Memory Cache");
+					if (Constants.DEBUG) {
+						Log.d("BitmapLruCache.Builder", "Creating Disk Cache");
+					}
+					diskCache = DiskLruCache.open(mDiskCacheLocation, 0, 1, mDiskCacheMaxSize);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 
-			return cache;
+			return new BitmapLruCache(memoryCache, diskCache);
 		}
 
 		/**
@@ -431,6 +462,29 @@ public class BitmapLruCache {
 
 		private boolean isValidOptionsForMemoryCache() {
 			return mMemoryCacheEnabled && mMemoryCacheMaxSize > 0;
+		}
+	}
+
+	static final class DiskCacheFlushRunnable implements Runnable {
+
+		private final DiskLruCache mDiskCache;
+
+		public DiskCacheFlushRunnable(DiskLruCache cache) {
+			mDiskCache = cache;
+		}
+
+		public void run() {
+			// Make sure we're running with a background priority
+			Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+
+			if (Constants.DEBUG) {
+				Log.d(Constants.LOG_TAG, "Flushing Disk Cache");
+			}
+			try {
+				mDiskCache.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }
