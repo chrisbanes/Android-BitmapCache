@@ -22,8 +22,6 @@ import android.support.v4.util.LruCache;
 
 final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapWrapper> {
 
-	static final String LOG_TAG = "BitmapMemoryLruCache";
-
 	BitmapMemoryLruCache(int maxSize) {
 		super(maxSize);
 	}

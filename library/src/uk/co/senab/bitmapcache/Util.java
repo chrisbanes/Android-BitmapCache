@@ -27,17 +27,17 @@ import java.security.NoSuchAlgorithmException;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 
-public class Util {
+class Util {
 
-	public static long copy(File in, OutputStream out) throws IOException {
+	static long copy(File in, OutputStream out) throws IOException {
 		return copy(new FileInputStream(in), out);
 	}
 
-	public static long copy(InputStream in, File out) throws IOException {
+	static long copy(InputStream in, File out) throws IOException {
 		return copy(in, new FileOutputStream(out));
 	}
 
-	public static String md5(String string) {
+	static String md5(String string) {
 		try {
 			// Create MD5 Hash
 			MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
@@ -58,7 +58,7 @@ public class Util {
 		return null;
 	}
 
-	public static void saveBitmap(Bitmap bitmap, OutputStream out) {
+	static void saveBitmap(Bitmap bitmap, OutputStream out) {
 		bitmap.compress(CompressFormat.PNG, 100, out);
 	}
 
