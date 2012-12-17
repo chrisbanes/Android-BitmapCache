@@ -22,6 +22,13 @@ public class BitmapLruCache {
 	private DiskLruCache mDiskCache;
 	private BitmapMemoryLruCache mMemoryCache;
 
+	/**
+	 * Returns the value for {@code url}. This will check all caches currently
+	 * enabled, meaning that this probably isn't safe to be called on the main
+	 * thread.
+	 * 
+	 * @param url - String representing the URL of the image
+	 */
 	public CacheableBitmapWrapper get(String url) {
 		CacheableBitmapWrapper result = null;
 
@@ -36,6 +43,18 @@ public class BitmapLruCache {
 		return result;
 	}
 
+	/**
+	 * Returns the value for {@code url} in the disk cache only. As this will
+	 * read from the file system, this method is not safe to be called from the
+	 * main thread.
+	 * <p />
+	 * Unless you have a specific requirement to only query the disk cache, you
+	 * should call {@link #get(String)} instead.
+	 * 
+	 * @param url - String representing the URL of the image
+	 * @return Value for {@code url} from disk cache, or {@code null} if the
+	 *         disk cache is not enabled.
+	 */
 	public CacheableBitmapWrapper getFromDiskCache(final String url) {
 		CacheableBitmapWrapper result = null;
 
@@ -63,6 +82,20 @@ public class BitmapLruCache {
 		return result;
 	}
 
+	/**
+	 * Returns the value for {@code url} in the memory cache only. This method
+	 * is safe to be called from the main thread.
+	 * <p />
+	 * You should check the result of this method before starting a threaded
+	 * call.
+	 * 
+	 * Unless you have a specific requirement to only query the disk cache, you
+	 * should call {@link #get(String)} instead.
+	 * 
+	 * @param url - String representing the URL of the image
+	 * @return Value for {@code url} from memory cache, or {@code null} if the
+	 *         disk cache is not enabled.
+	 */
 	public CacheableBitmapWrapper getFromMemoryCache(final String url) {
 		CacheableBitmapWrapper result = null;
 
@@ -79,6 +112,14 @@ public class BitmapLruCache {
 		return result;
 	}
 
+	/**
+	 * Caches {@code bitmap} for {@code url} into all enabled caches. If the
+	 * disk cache is enabled, the bitmap will be compressed losslessly.
+	 * 
+	 * @param url - String representing the URL of the image
+	 * @param bitmap - Bitmap which has been decoded from {@code url}
+	 * @return CacheableBitmapWrapper which can be used to display the bitmap.
+	 */
 	public CacheableBitmapWrapper put(String url, Bitmap bitmap) {
 		CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
 
@@ -101,6 +142,24 @@ public class BitmapLruCache {
 		return wrapper;
 	}
 
+	/**
+	 * Caches resulting bitmap from {@code inputStream} for {@code url} into all
+	 * enabled caches. This version of the method should be preferred as it
+	 * allows the original image contents to be cached, rather than a
+	 * re-compressed version.
+	 * <p />
+	 * The contents of the InputStream will be copied to a temporary file, then
+	 * the file will be decoded into a Bitmap. Providing the decode worked:
+	 * <ul>
+	 * <li>If the memory cache is enabled, the Bitmap will be cached</li>
+	 * <li>If the disk cache is enabled, the contents of the file will be
+	 * cached.</li>
+	 * </ul>
+	 * 
+	 * @param url - String representing the URL of the image
+	 * @param inputStream - InputStream opened from {@code url}
+	 * @return CacheableBitmapWrapper which can be used to display the bitmap.
+	 */
 	public CacheableBitmapWrapper put(final String url, final InputStream inputStream) {
 		// First we need to save the stream contents to a temporary file, so it
 		// can be read multiple times
@@ -151,9 +210,9 @@ public class BitmapLruCache {
 	}
 
 	/**
-	 * This method iterates through the cache and removes any Bitmap entries
-	 * which are not currently being displayed. A good place to call this would
-	 * be from {@link android.app.Application#onLowMemory()
+	 * This method iterates through the memory cache (if enabled) and removes
+	 * any entries which are not currently being displayed. A good place to call
+	 * this would be from {@link android.app.Application#onLowMemory()
 	 * Application.onLowMemory()}.
 	 */
 	public void trimMemory() {
