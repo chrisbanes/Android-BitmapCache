@@ -47,12 +47,6 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 	 */
 	private class ImageUrlAsyncTask extends AsyncTask<String, Void, CacheableBitmapWrapper> {
 
-		private final boolean mFullSize;
-
-		public ImageUrlAsyncTask(boolean fullSize) {
-			mFullSize = fullSize;
-		}
-
 		@Override
 		protected CacheableBitmapWrapper doInBackground(String... params) {
 			try {
@@ -128,7 +122,7 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 			// Memory Cache doesn't have the URL, do threaded request...
 			setImageCachedBitmap(null);
 
-			mCurrentTask = new ImageUrlAsyncTask(fullSize);
+			mCurrentTask = new ImageUrlAsyncTask();
 			mCurrentTask.execute(url);
 			return false;
 		}
