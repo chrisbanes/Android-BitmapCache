@@ -100,7 +100,8 @@ public class BitmapLruCache {
 	/**
 	 * Returns the value for {@code url} in the disk cache only. As this will
 	 * read from the file system, this method is not safe to be called from the
-	 * main thread.
+	 * main thread. If enabled, the result of this method will be cached in the
+	 * memory cache.
 	 * <p />
 	 * Unless you have a specific requirement to only query the disk cache, you
 	 * should call {@link #get(String)} instead.
