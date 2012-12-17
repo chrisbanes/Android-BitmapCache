@@ -25,13 +25,21 @@ public class BitmapLruCache {
 	public CacheableBitmapWrapper get(String url) {
 		CacheableBitmapWrapper result = null;
 
-		if (null != mMemoryCache) {
-			// First try Memory Cache
-			result = mMemoryCache.get(url);
+		// First try Memory Cache
+		result = getFromMemoryCache(url);
+
+		if (null == result) {
+			// Memory Cache failed, so try Disk Cache
+			result = getFromDiskCache(url);
 		}
 
-		if (null == result && null != mDiskCache) {
-			// Memory Cache failed, so try Disk Cache
+		return result;
+	}
+
+	public CacheableBitmapWrapper getFromDiskCache(final String url) {
+		CacheableBitmapWrapper result = null;
+
+		if (null != mDiskCache) {
 			try {
 				DiskLruCache.Snapshot snapshot = mDiskCache.get(transformUrlForDiskCacheKey(url));
 				if (null != snapshot) {
@@ -49,6 +57,22 @@ public class BitmapLruCache {
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
+			}
+		}
+
+		return result;
+	}
+
+	public CacheableBitmapWrapper getFromMemoryCache(final String url) {
+		CacheableBitmapWrapper result = null;
+
+		if (null != mMemoryCache) {
+			result = mMemoryCache.get(url);
+
+			// If we get a value, but it has a invalid bitmap, remove it
+			if (null != result && !result.hasValidBitmap()) {
+				mMemoryCache.remove(url);
+				result = null;
 			}
 		}
 

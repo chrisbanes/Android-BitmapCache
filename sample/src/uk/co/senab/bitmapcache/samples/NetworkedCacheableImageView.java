@@ -58,11 +58,19 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 			try {
 				String url = params[0];
 
-				HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-				InputStream is = new BufferedInputStream(conn.getInputStream());
+				// Now we're not on the main thread we can check all caches
+				CacheableBitmapWrapper result = mCache.get(url);
 
-				// Add to cache
-				return mCache.put(url, is);
+				if (null == result) {
+					// The bitmap isn't cached so download from the web
+					HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+					InputStream is = new BufferedInputStream(conn.getInputStream());
+
+					// Add to cache
+					result = mCache.put(url, is);
+				}
+
+				return result;
 
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
@@ -107,15 +115,17 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 			mCurrentTask.cancel(false);
 		}
 
-		// Check to see if the cache already has the bitmap
-		CacheableBitmapWrapper wrapper = mCache.get(url);
+		// Check to see if the memory cache already has the bitmap. We can
+		// safely do
+		// this on the main thread.
+		CacheableBitmapWrapper wrapper = mCache.getFromMemoryCache(url);
 
 		if (null != wrapper && wrapper.hasValidBitmap()) {
 			// The cache has it, so just display it
 			setImageCachedBitmap(wrapper);
 			return true;
 		} else {
-			// Cache doesn't have the URL, do network request...
+			// Memory Cache doesn't have the URL, do threaded request...
 			setImageCachedBitmap(null);
 
 			mCurrentTask = new ImageUrlAsyncTask(fullSize);
