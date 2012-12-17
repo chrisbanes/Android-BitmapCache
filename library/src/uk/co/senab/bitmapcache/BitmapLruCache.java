@@ -184,7 +184,6 @@ public class BitmapLruCache {
 			tmpFile = File.createTempFile("bitmapcache_", null);
 
 			// Pipe InputStream to file
-			// TODO Add Buffered Layer
 			Util.copy(inputStream, tmpFile);
 
 			// Close the original InputStream
