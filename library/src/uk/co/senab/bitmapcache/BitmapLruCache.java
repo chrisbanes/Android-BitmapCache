@@ -5,8 +5,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import android.app.ActivityManager;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
@@ -15,6 +13,15 @@ import com.jakewharton.DiskLruCache;
 
 public class BitmapLruCache {
 
+	/**
+	 * The disk cache only accepts a reduced range of characters for the key
+	 * values. This method transforms the {@code url} into something accepted
+	 * from {@link DiskLruCache}. Currently we simply return a MD5 hash of the
+	 * url.
+	 * 
+	 * @param url - Key to be transformed
+	 * @return key which can be used for the disk cache
+	 */
 	private static String transformUrlForDiskCacheKey(String url) {
 		return Util.md5(url);
 	}
@@ -234,17 +241,34 @@ public class BitmapLruCache {
 		mMemoryCache.put(wrapper.getUrl(), wrapper);
 	}
 
+	/**
+	 * Builder class for {link {@link BitmapLruCache}. An example call:
+	 * 
+	 * <pre>
+	 * BitmapLruCache.Builder builder = new BitmapLruCache.Builder();
+	 * builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize(this);
+	 * builder.setDiskCacheEnabled(true).setDiskCacheLocation(...);
+	 * 
+	 * BitmapLruCache cache = builder.build();
+	 * </pre>
+	 * 
+	 * @author Chris Banes
+	 */
 	public static class Builder {
 
 		static final int MEGABYTE = 1024 * 1024;
 
 		static final float DEFAULT_MEMORY_CACHE_HEAP_RATIO = 1f / 8f;
-		static final int DEFAULT_DISK_CACHE_MAX_SIZE = MEGABYTE * 10;
-
 		static final float MAX_MEMORY_CACHE_HEAP_RATIO = 0.75f;
 
 		private static int getHeapSize(Context context) {
 			return ((ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryClass();
+		static final int DEFAULT_DISK_CACHE_MAX_SIZE_MB = 10;
+		static final int DEFAULT_MEM_CACHE_MAX_SIZE_MB = 3;
+
+		// Only used for Javadoc
+		static final float DEFAULT_MEMORY_CACHE_HEAP_PERCENTAGE = DEFAULT_MEMORY_CACHE_HEAP_RATIO * 100;
+		static final float MAX_MEMORY_CACHE_HEAP_PERCENTAGE = MAX_MEMORY_CACHE_HEAP_RATIO * 100;
 		}
 
 		private boolean mDiskCacheEnabled;
@@ -255,12 +279,18 @@ public class BitmapLruCache {
 		private int mMemoryCacheMaxSize;
 
 		public Builder() {
-			mDiskCacheMaxSize = DEFAULT_DISK_CACHE_MAX_SIZE;
+			// Disk Cache is disabled by default, but it's default size is set
+			mDiskCacheMaxSize = DEFAULT_DISK_CACHE_MAX_SIZE_MB * MEGABYTE;
 
-			// Memory Cache is enabled by default
+			// Memory Cache is enabled by default, with a small maximum size
 			mMemoryCacheEnabled = true;
+			mMemoryCacheMaxSize = DEFAULT_MEM_CACHE_MAX_SIZE_MB * MEGABYTE;
 		}
 
+		/**
+		 * @return A new {@link BitmapLruCache} created with the arguments
+		 *         supplied to this builder.
+		 */
 		public BitmapLruCache build() {
 			BitmapLruCache cache = new BitmapLruCache();
 
@@ -283,44 +313,78 @@ public class BitmapLruCache {
 			return cache;
 		}
 
+		/**
+		 * Set whether the Disk Cache should be enabled. Defaults to
+		 * {@code false}.
+		 * 
+		 * @return This Builder object to allow for chaining of calls to set
+		 *         methods.
+		 */
 		public Builder setDiskCacheEnabled(boolean enabled) {
 			mDiskCacheEnabled = enabled;
 			return this;
 		}
 
+		/**
+		 * Set the Disk Cache location. This location should be read-writeable.
+		 * 
+		 * @return This Builder object to allow for chaining of calls to set
+		 *         methods.
+		 */
 		public Builder setDiskCacheLocation(File location) {
 			mDiskCacheLocation = location;
 			return this;
 		}
 
+		/**
+		 * Set the maximum number of bytes the Disk Cache should use to store
+		 * values. Defaults to {@value #DEFAULT_DISK_CACHE_MAX_SIZE_MB}MB.
+		 * 
+		 * @return This Builder object to allow for chaining of calls to set
+		 *         methods.
+		 */
 		public Builder setDiskCacheMaxSize(long maxSize) {
 			mDiskCacheMaxSize = maxSize;
 			return this;
 		}
 
+		/**
+		 * Set whether the Memory Cache should be enabled. Defaults to
+		 * {@code true}.
+		 * 
+		 * @return This Builder object to allow for chaining of calls to set
+		 *         methods.
+		 */
 		public Builder setMemoryCacheEnabled(boolean enabled) {
 			mMemoryCacheEnabled = enabled;
 			return this;
 		}
 
+		/**
+		 * Set the maximum number of bytes the Memory Cache should use to store
+		 * values. Defaults to {@value #DEFAULT_MEM_CACHE_MAX_SIZE_MB}MB.
+		 * 
+		 * @return This Builder object to allow for chaining of calls to set
+		 *         methods.
+		 */
 		public Builder setMemoryCacheMaxSize(int size) {
 			mMemoryCacheMaxSize = size;
 			return this;
 		}
 
 		/**
-		 * Initialise LruCache with default size of
-		 * {@value #DEFAULT_MEMORY_CACHE_HEAP_RATIO} of heap size.
+		 * Sets the Memory Cache maximum size to be the default value of
+		 * {@value #DEFAULT_MEMORY_CACHE_HEAP_PERCENTAGE}% of heap size.
 		 * 
-		 * @param context - context
+		 * @param context - Context, needed to retrieve heap size.
 		 */
 		public Builder setMemoryCacheMaxSizeUsingHeapSize(Context context) {
 			return setMemoryCacheMaxSizeUsingHeapSize(context, DEFAULT_MEMORY_CACHE_HEAP_RATIO);
 		}
 
 		/**
-		 * Sets the Memory Cache size to be the given percentage of heap size.
-		 * This is capped at {@value #MAX_MEMORY_CACHE_HEAP_RATIO} denoting 75%
+		 * Sets the Memory Cache maximum size to be the given percentage of heap
+		 * size. This is capped at {@value #MAX_MEMORY_CACHE_HEAP_PERCENTAGE}%
 		 * of the app heap size.
 		 * 
 		 * @param context - Context
