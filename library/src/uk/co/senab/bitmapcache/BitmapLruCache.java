@@ -175,10 +175,24 @@ public class BitmapLruCache {
 	 * @param bitmap - Bitmap which has been decoded from {@code url}
 	 * @return CacheableBitmapWrapper which can be used to display the bitmap.
 	 */
-	public CacheableBitmapWrapper put(String url, Bitmap bitmap) {
+	public CacheableBitmapWrapper put(final String url, final Bitmap bitmap) {
+		return put(url, bitmap, true);
+	}
+
+	/**
+	 * Advanced version of {@link #put(String, Bitmap)} which allows selective
+	 * caching to the disk cache (if the disk cache is enabled).
+	 * 
+	 * @param url - String representing the URL of the image
+	 * @param bitmap - Bitmap which has been decoded from {@code url}
+	 * @param cacheToDiskIfEnabled - Cache to disk, if the disk cache is
+	 *            enabled.
+	 * @return CacheableBitmapWrapper which can be used to display the bitmap.
+	 */
+	public CacheableBitmapWrapper put(final String url, final Bitmap bitmap, final boolean cacheToDiskIfEnabled) {
 		CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
 
-		if (null != mDiskCache) {
+		if (null != mDiskCache && cacheToDiskIfEnabled) {
 			final ReentrantLock lock = getLockForDiskCacheEdit(url);
 			lock.lock();
 			try {
@@ -209,9 +223,9 @@ public class BitmapLruCache {
 	 * The contents of the InputStream will be copied to a temporary file, then
 	 * the file will be decoded into a Bitmap. Providing the decode worked:
 	 * <ul>
-	 * <li>If the memory cache is enabled, the Bitmap will be cached</li>
-	 * <li>If the disk cache is enabled, the contents of the file will be
-	 * cached.</li>
+	 * <li>If the memory cache is enabled, the Bitmap will be cached to memory</li>
+	 * <li>If the disk cache is enabled, the contents of the file will be cached
+	 * to disk.</li>
 	 * </ul>
 	 * 
 	 * @param url - String representing the URL of the image
@@ -219,6 +233,21 @@ public class BitmapLruCache {
 	 * @return CacheableBitmapWrapper which can be used to display the bitmap.
 	 */
 	public CacheableBitmapWrapper put(final String url, final InputStream inputStream) {
+		return put(url, inputStream, true);
+	}
+
+	/**
+	 * Advanced version of {@link #put(String, InputStream)} which allows
+	 * selective caching to the disk cache (if the disk cache is enabled).
+	 * 
+	 * @param url - String representing the URL of the image
+	 * @param inputStream - InputStream opened from {@code url}
+	 * @param cacheToDiskIfEnabled - Cache to disk, if the disk cache is
+	 *            enabled.
+	 * @return CacheableBitmapWrapper which can be used to display the bitmap.
+	 */
+	public CacheableBitmapWrapper put(final String url, final InputStream inputStream,
+			final boolean cacheToDiskIfEnabled) {
 		// First we need to save the stream contents to a temporary file, so it
 		// can be read multiple times
 		File tmpFile = null;
@@ -246,7 +275,7 @@ public class BitmapLruCache {
 			if (null != bitmap) {
 				wrapper = new CacheableBitmapWrapper(url, bitmap);
 
-				if (null != mDiskCache) {
+				if (null != mDiskCache && cacheToDiskIfEnabled) {
 					final ReentrantLock lock = getLockForDiskCacheEdit(url);
 					lock.lock();
 					try {
