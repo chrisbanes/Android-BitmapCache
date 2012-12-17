@@ -421,8 +421,7 @@ public class BitmapLruCache {
 		 *            0.0 <= x <= {@value #MAX_MEMORY_CACHE_HEAP_RATIO}.
 		 */
 		public Builder setMemoryCacheMaxSizeUsingHeapSize(float percentageOfHeap) {
-			int size = (int) Math.round(MEGABYTE * getHeapSize()
-					* Math.min(percentageOfHeap, MAX_MEMORY_CACHE_HEAP_RATIO));
+			int size = (int) Math.round(getHeapSize() * Math.min(percentageOfHeap, MAX_MEMORY_CACHE_HEAP_RATIO));
 			return setMemoryCacheMaxSize(size);
 		}
 
