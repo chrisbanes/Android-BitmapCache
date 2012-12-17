@@ -276,6 +276,24 @@ public class BitmapLruCache {
 	}
 
 	/**
+	 * Removes the entry for {@code url} from all enabled caches, if it exists.
+	 */
+	public void remove(String url) {
+		if (null != mMemoryCache) {
+			mMemoryCache.remove(url);
+		}
+
+		if (null != mDiskCache) {
+			try {
+				mDiskCache.remove(transformUrlForDiskCacheKey(url));
+				scheduleDiskCacheFlush();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	/**
 	 * This method iterates through the memory cache (if enabled) and removes
 	 * any entries which are not currently being displayed. A good place to call
 	 * this would be from {@link android.app.Application#onLowMemory()
