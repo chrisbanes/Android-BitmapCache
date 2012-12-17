@@ -31,6 +31,35 @@ import android.util.Log;
 
 import com.jakewharton.DiskLruCache;
 
+/**
+ * A cache which can be set to use multiple layers of caching for Bitmap objects
+ * in an Android app. Instances are created via a {@link Builder} instance,
+ * which can be used to alter the settings of the resulting cache.
+ * 
+ * <p>
+ * Instances of this class should ideally be kept globally with the application,
+ * for example in the {@link android.app.Application Application} object. You
+ * should also use the bundled {@link CacheableImageView} wherever possible, as
+ * the memory cache has a close relationship with it.
+ * </p>
+ * 
+ * <p>
+ * Clients can call {@link #get(String)} to retrieve a cached value from the
+ * given Url. This will check all available caches for the value. There are also
+ * the {@link #getFromDiskCache(String)} and {@link #getFromMemoryCache(String)}
+ * which allow more granular access.
+ * </p>
+ * 
+ * <p>
+ * There are a number of update methods. {@link #put(String, InputStream)} and
+ * {@link #put(String, InputStream, boolean)} are the preferred versions of the
+ * method, as they allow 1:1 caching to disk of the original content. <br />
+ * {@link #put(String, Bitmap)} and {@link #put(String, Bitmap, boolean)} should
+ * only be used if you can't get access to the original InputStream.
+ * </p>
+ * 
+ * @author Chris Banes
+ */
 public class BitmapLruCache {
 
 	// The number of seconds after the last edit that the Disk Cache should be
@@ -53,7 +82,7 @@ public class BitmapLruCache {
 	private final DiskLruCache mDiskCache;
 	private final BitmapMemoryLruCache mMemoryCache;
 
-	// Variable which are only used when the Disk Cache is enabled
+	// Variables which are only used when the Disk Cache is enabled
 	private final HashMap<String, ReentrantLock> mDiskCacheEditLocks;
 	private final ScheduledThreadPoolExecutor mDiskCacheFlusherExecutor;
 	private final DiskCacheFlushRunnable mDiskCacheFlusherRunnable;
