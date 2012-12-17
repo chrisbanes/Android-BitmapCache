@@ -551,7 +551,16 @@ public class BitmapLruCache {
 		}
 
 		private boolean isValidOptionsForDiskCache() {
-			return mDiskCacheEnabled && null != mDiskCacheLocation;
+			if (mDiskCacheEnabled) {
+				if (null == mDiskCacheLocation) {
+					Log.i(Constants.LOG_TAG,
+							"Disk Cache has been enabled, but no location given. Please call setDiskCacheLocation(...)");
+					return false;
+				}
+
+				return true;
+			}
+			return false;
 
 		}
 
