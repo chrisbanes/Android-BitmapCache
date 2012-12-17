@@ -3,6 +3,8 @@ package uk.co.senab.bitmapcache;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -28,7 +30,10 @@ public class BitmapLruCache {
 	private DiskLruCache mDiskCache;
 	private BitmapMemoryLruCache mMemoryCache;
 
+	private final HashMap<String, ReentrantLock> mDiskCacheEditLocks;
+
 	protected BitmapLruCache() {
+		mDiskCacheEditLocks = new HashMap<String, ReentrantLock>();
 	}
 
 	/**
@@ -133,14 +138,16 @@ public class BitmapLruCache {
 		CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
 
 		if (null != mDiskCache) {
+			final ReentrantLock lock = getLockForDiskCacheEdit(url);
+			lock.lock();
 			try {
 				DiskLruCache.Editor editor = mDiskCache.edit(transformUrlForDiskCacheKey(url));
-				if (null != editor) {
-					Util.saveBitmap(bitmap, editor.newOutputStream(0));
-					editor.commit();
-				}
+				Util.saveBitmap(bitmap, editor.newOutputStream(0));
+				editor.commit();
 			} catch (IOException e) {
 				e.printStackTrace();
+			} finally {
+				lock.unlock();
 			}
 		}
 
@@ -199,14 +206,16 @@ public class BitmapLruCache {
 				wrapper = new CacheableBitmapWrapper(url, bitmap);
 
 				if (null != mDiskCache) {
+					final ReentrantLock lock = getLockForDiskCacheEdit(url);
+					lock.lock();
 					try {
 						DiskLruCache.Editor editor = mDiskCache.edit(transformUrlForDiskCacheKey(url));
-						if (null != editor) {
-							Util.copy(tmpFile, editor.newOutputStream(0));
-							editor.commit();
-						}
+						Util.copy(tmpFile, editor.newOutputStream(0));
+						editor.commit();
 					} catch (IOException e) {
 						e.printStackTrace();
+					} finally {
+						lock.unlock();
 					}
 				}
 
@@ -242,6 +251,17 @@ public class BitmapLruCache {
 
 	void setMemoryLruCache(BitmapMemoryLruCache cache) {
 		mMemoryCache = cache;
+	}
+
+	private ReentrantLock getLockForDiskCacheEdit(String url) {
+		synchronized (mDiskCacheEditLocks) {
+			ReentrantLock lock = mDiskCacheEditLocks.get(url);
+			if (null == lock) {
+				lock = new ReentrantLock();
+				mDiskCacheEditLocks.put(url, lock);
+			}
+			return lock;
+		}
 	}
 
 	private void putIntoMemoryCache(CacheableBitmapWrapper wrapper) {
