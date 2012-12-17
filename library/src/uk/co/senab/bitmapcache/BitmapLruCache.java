@@ -124,8 +124,9 @@ public class BitmapLruCache {
 						putIntoMemoryCache(result);
 					} else {
 						// If we get here, the file in the cache can't be
-						// decoded. Remove it.
+						// decoded. Remove it and schedule a flush.
 						mDiskCache.remove(transformUrlForDiskCacheKey(url));
+						scheduleDiskCacheFlush();
 					}
 				}
 			} catch (IOException e) {
