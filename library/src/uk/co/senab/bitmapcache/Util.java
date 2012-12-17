@@ -14,12 +14,12 @@ import android.graphics.Bitmap.CompressFormat;
 
 public class Util {
 
-	public static void copy(File in, OutputStream out) throws IOException {
-		copy(new FileInputStream(in), out);
+	public static long copy(File in, OutputStream out) throws IOException {
+		return copy(new FileInputStream(in), out);
 	}
 
-	public static void copy(InputStream in, File out) throws IOException {
-		copy(in, new FileOutputStream(out));
+	public static long copy(InputStream in, File out) throws IOException {
+		return copy(in, new FileOutputStream(out));
 	}
 
 	public static String md5(String string) {
@@ -49,19 +49,22 @@ public class Util {
 
 	/**
 	 * Pipe an InputStream to the given OutputStream
+	 * <p />
+	 * Taken from Apache Commons IOUtils.
 	 * 
 	 * @param in
 	 * @param out
 	 * @throws IOException
 	 */
-	// TODO Can probably be optimized
-	private static void copy(InputStream in, OutputStream out) throws IOException {
-		byte[] buffer = new byte[1024];
-		int len = in.read(buffer);
-		while (len != -1) {
-			out.write(buffer, 0, len);
-			len = in.read(buffer);
+	private static long copy(InputStream input, OutputStream output) throws IOException {
+		byte[] buffer = new byte[1024 * 4];
+		long count = 0;
+		int n = 0;
+		while (-1 != (n = input.read(buffer))) {
+			output.write(buffer, 0, n);
+			count += n;
 		}
+		return count;
 	}
 
 }
