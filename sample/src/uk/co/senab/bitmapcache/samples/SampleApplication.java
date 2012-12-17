@@ -34,7 +34,7 @@ public class SampleApplication extends Application {
 		cacheLocation.mkdirs();
 
 		BitmapLruCache.Builder builder = new BitmapLruCache.Builder();
-		builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize(this);
+		builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize();
 		builder.setDiskCacheEnabled(true).setDiskCacheLocation(cacheLocation);
 
 		mCache = builder.build();

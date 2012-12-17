@@ -1,7 +1,6 @@
 package uk.co.senab.bitmapcache;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -28,6 +27,9 @@ public class BitmapLruCache {
 
 	private DiskLruCache mDiskCache;
 	private BitmapMemoryLruCache mMemoryCache;
+
+	protected BitmapLruCache() {
+	}
 
 	/**
 	 * Returns the value for {@code url}. This will check all caches currently
@@ -176,7 +178,7 @@ public class BitmapLruCache {
 
 			// Pipe InputStream to file
 			// TODO Add Buffered Layer
-			Util.pipe(inputStream, new FileOutputStream(tmpFile));
+			Util.copy(inputStream, tmpFile);
 
 			// Close the original InputStream
 			try {
@@ -190,23 +192,29 @@ public class BitmapLruCache {
 		CacheableBitmapWrapper wrapper = null;
 
 		if (null != tmpFile) {
-			wrapper = new CacheableBitmapWrapper(url, BitmapFactory.decodeFile(tmpFile.getAbsolutePath()));
+			// Try and decode File
+			Bitmap bitmap = BitmapFactory.decodeFile(tmpFile.getAbsolutePath());
 
-			if (null != mDiskCache) {
-				try {
-					DiskLruCache.Editor editor = mDiskCache.edit(transformUrlForDiskCacheKey(url));
-					if (null != editor) {
-						Util.pipe(tmpFile, editor.newOutputStream(0));
-						editor.commit();
+			if (null != bitmap) {
+				wrapper = new CacheableBitmapWrapper(url, bitmap);
+
+				if (null != mDiskCache) {
+					try {
+						DiskLruCache.Editor editor = mDiskCache.edit(transformUrlForDiskCacheKey(url));
+						if (null != editor) {
+							Util.copy(tmpFile, editor.newOutputStream(0));
+							editor.commit();
+						}
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
-				} catch (IOException e) {
-					e.printStackTrace();
 				}
-			}
 
-			if (null != mMemoryCache) {
-				wrapper.setCached(true);
-				mMemoryCache.put(wrapper.getUrl(), wrapper);
+				if (null != mMemoryCache) {
+					wrapper.setCached(true);
+					mMemoryCache.put(wrapper.getUrl(), wrapper);
+				}
+
 			}
 
 			// Finally, delete the temporary file
@@ -261,14 +269,15 @@ public class BitmapLruCache {
 		static final float DEFAULT_MEMORY_CACHE_HEAP_RATIO = 1f / 8f;
 		static final float MAX_MEMORY_CACHE_HEAP_RATIO = 0.75f;
 
-		private static int getHeapSize(Context context) {
-			return ((ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryClass();
 		static final int DEFAULT_DISK_CACHE_MAX_SIZE_MB = 10;
 		static final int DEFAULT_MEM_CACHE_MAX_SIZE_MB = 3;
 
 		// Only used for Javadoc
 		static final float DEFAULT_MEMORY_CACHE_HEAP_PERCENTAGE = DEFAULT_MEMORY_CACHE_HEAP_RATIO * 100;
 		static final float MAX_MEMORY_CACHE_HEAP_PERCENTAGE = MAX_MEMORY_CACHE_HEAP_RATIO * 100;
+
+		private static long getHeapSize() {
+			return Runtime.getRuntime().maxMemory();
 		}
 
 		private boolean mDiskCacheEnabled;
@@ -378,8 +387,8 @@ public class BitmapLruCache {
 		 * 
 		 * @param context - Context, needed to retrieve heap size.
 		 */
-		public Builder setMemoryCacheMaxSizeUsingHeapSize(Context context) {
-			return setMemoryCacheMaxSizeUsingHeapSize(context, DEFAULT_MEMORY_CACHE_HEAP_RATIO);
+		public Builder setMemoryCacheMaxSizeUsingHeapSize() {
+			return setMemoryCacheMaxSizeUsingHeapSize(DEFAULT_MEMORY_CACHE_HEAP_RATIO);
 		}
 
 		/**
@@ -387,12 +396,12 @@ public class BitmapLruCache {
 		 * size. This is capped at {@value #MAX_MEMORY_CACHE_HEAP_PERCENTAGE}%
 		 * of the app heap size.
 		 * 
-		 * @param context - Context
+		 * @param context - Context, needed to retrieve heap size.
 		 * @param percentageOfHeap - percentage of heap size. Valid values are
 		 *            0.0 <= x <= {@value #MAX_MEMORY_CACHE_HEAP_RATIO}.
 		 */
-		public Builder setMemoryCacheMaxSizeUsingHeapSize(Context context, float percentageOfHeap) {
-			int size = Math.round(MEGABYTE * getHeapSize(context)
+		public Builder setMemoryCacheMaxSizeUsingHeapSize(float percentageOfHeap) {
+			int size = (int) Math.round(MEGABYTE * getHeapSize()
 					* Math.min(percentageOfHeap, MAX_MEMORY_CACHE_HEAP_RATIO));
 			return setMemoryCacheMaxSize(size);
 		}
