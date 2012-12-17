@@ -144,7 +144,8 @@ public class BitmapLruCache {
 
 		if (null != mDiskCache) {
 			try {
-				DiskLruCache.Snapshot snapshot = mDiskCache.get(transformUrlForDiskCacheKey(url));
+				final String key = transformUrlForDiskCacheKey(url);
+				DiskLruCache.Snapshot snapshot = mDiskCache.get(key);
 				if (null != snapshot) {
 					// Try and decode bitmap
 					Bitmap bitmap = BitmapFactory.decodeStream(snapshot.getInputStream(0));
@@ -155,7 +156,7 @@ public class BitmapLruCache {
 					} else {
 						// If we get here, the file in the cache can't be
 						// decoded. Remove it and schedule a flush.
-						mDiskCache.remove(transformUrlForDiskCacheKey(url));
+						mDiskCache.remove(key);
 						scheduleDiskCacheFlush();
 					}
 				}
