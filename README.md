@@ -30,7 +30,7 @@ method, as they allow 1:1 caching to disk of the original content. <br />
 only be used if you can't get access to the original InputStream.
 
 ## Usage
-The easy way to use the library is by downloading the JAR file under the 'Downloads' tab, and importing it into your Eclipse project.
+The easy way to use the library is by downloading the JAR file, and importing it into your Eclipse project. You can find the latest JAR file from here: [http://bit.ly/android-bitmapcache-jar](http://bit.ly/android-bitmapcache-jar). Just remember that you must include all of the required libraries below too.
 
 If you are a Maven user you can also add this library as a dependency since it
 it distributed to the central repositories. Simply add the following to your
@@ -43,6 +43,10 @@ it distributed to the central repositories. Simply add the following to your
     <version>2.0</version>
 </dependency>
 ```
+
+### Requirements
+ * [DiskLruCache](https://github.com/JakeWharton/DiskLruCache). Tested with v1.2.1.
+ * [Android v4 Support Library](http://developer.android.com/tools/extras/support-library.html). Preferably the latest available.
 
 ## License
 
