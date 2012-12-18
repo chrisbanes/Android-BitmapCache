@@ -186,12 +186,14 @@ public class BitmapLruCache {
 		CacheableBitmapWrapper result = null;
 
 		if (null != mMemoryCache) {
-			result = mMemoryCache.get(url);
+			synchronized (mMemoryCache) {
+				result = mMemoryCache.get(url);
 
-			// If we get a value, but it has a invalid bitmap, remove it
-			if (null != result && !result.hasValidBitmap()) {
-				mMemoryCache.remove(url);
-				result = null;
+				// If we get a value, but it has a invalid bitmap, remove it
+				if (null != result && !result.hasValidBitmap()) {
+					mMemoryCache.remove(url);
+					result = null;
+				}
 			}
 		}
 
@@ -200,7 +202,10 @@ public class BitmapLruCache {
 
 	/**
 	 * Caches {@code bitmap} for {@code url} into all enabled caches. If the
-	 * disk cache is enabled, the bitmap will be compressed losslessly.
+	 * disk cache is enabled, the bitmap will be compressed losslessly. *
+	 * <p/>
+	 * As this method may write to the file system, this method is not safe to
+	 * be called from the main thread.
 	 * 
 	 * @param url - String representing the URL of the image
 	 * @param bitmap - Bitmap which has been decoded from {@code url}
@@ -213,6 +218,9 @@ public class BitmapLruCache {
 	/**
 	 * Advanced version of {@link #put(String, Bitmap)} which allows selective
 	 * caching to the disk cache (if the disk cache is enabled).
+	 * <p/>
+	 * As this method may write to the file system, this method is not safe to
+	 * be called from the main thread.
 	 * 
 	 * @param url - String representing the URL of the image
 	 * @param bitmap - Bitmap which has been decoded from {@code url}
@@ -258,6 +266,9 @@ public class BitmapLruCache {
 	 * <li>If the disk cache is enabled, the contents of the file will be cached
 	 * to disk.</li>
 	 * </ul>
+	 * <p/>
+	 * As this method may write to the file system, this method is not safe to
+	 * be called from the main thread.
 	 * 
 	 * @param url - String representing the URL of the image
 	 * @param inputStream - InputStream opened from {@code url}
@@ -270,6 +281,9 @@ public class BitmapLruCache {
 	/**
 	 * Advanced version of {@link #put(String, InputStream)} which allows
 	 * selective caching to the disk cache (if the disk cache is enabled).
+	 * <p/>
+	 * As this method may write to the file system, this method is not safe to
+	 * be called from the main thread.
 	 * 
 	 * @param url - String representing the URL of the image
 	 * @param inputStream - InputStream opened from {@code url}
@@ -288,10 +302,11 @@ public class BitmapLruCache {
 			// Pipe InputStream to file
 			Util.copy(inputStream, tmpFile);
 
-			// Close the original InputStream
 			try {
+				// Close the original InputStream
 				inputStream.close();
-			} finally {
+			} catch (IOException e) {
+				// NO-OP - Ignore
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
