@@ -17,7 +17,6 @@ package uk.co.senab.bitmapcache.samples;
 
 import java.util.ArrayList;
 
-import uk.co.senab.bitmapcache.BitmapLruCache;
 import android.content.Context;
 import android.support.v4.view.PagerAdapter;
 import android.view.View;
@@ -25,16 +24,14 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageView.ScaleType;
 
-public class PugAdapter extends PagerAdapter {
+public class PugPagerAdapter extends PagerAdapter {
 
 	private final ArrayList<String> mPugUrls;
 	private final Context mContext;
-	private final BitmapLruCache mCache;
 
-	public PugAdapter(Context context, ArrayList<String> pugUrls) {
+	public PugPagerAdapter(Context context, ArrayList<String> pugUrls) {
 		mPugUrls = pugUrls;
 		mContext = context;
-		mCache = SampleApplication.getApplication(context).getBitmapCache();
 	}
 
 	@Override
@@ -44,10 +41,10 @@ public class PugAdapter extends PagerAdapter {
 
 	@Override
 	public View instantiateItem(ViewGroup container, int position) {
-		NetworkedCacheableImageView imageView = new NetworkedCacheableImageView(mContext, mCache);
+		NetworkedCacheableImageView imageView = new NetworkedCacheableImageView(mContext, null);
 
 		String pugUrl = mPugUrls.get(position);
-		imageView.loadImage(mCache, pugUrl);
+		imageView.loadImage(pugUrl);
 
 		imageView.setScaleType(ScaleType.FIT_CENTER);
 		container.addView(imageView, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);

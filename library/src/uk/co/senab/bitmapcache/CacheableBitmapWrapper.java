@@ -20,8 +20,6 @@ import android.util.Log;
 
 public class CacheableBitmapWrapper {
 
-	static final String LOG_TAG = "CacheableBitmapWrapper";
-
 	private final String mUrl;
 	private final Bitmap mBitmap;
 
@@ -31,11 +29,11 @@ public class CacheableBitmapWrapper {
 	// Number of caches currently referencing the wrapper
 	private int mCacheCount;
 
-	public CacheableBitmapWrapper(Bitmap bitmap) {
+	CacheableBitmapWrapper(Bitmap bitmap) {
 		this(null, bitmap);
 	}
 
-	public CacheableBitmapWrapper(String url, Bitmap bitmap) {
+	CacheableBitmapWrapper(String url, Bitmap bitmap) {
 		if (null == bitmap) {
 			throw new IllegalArgumentException("Bitmap can not be null");
 		}
@@ -88,8 +86,7 @@ public class CacheableBitmapWrapper {
 	 * Used to signal to the wrapper whether it is being referenced by a cache
 	 * or not.
 	 * 
-	 * @param added
-	 *            - true if the wrapper has been added to a cache, false if
+	 * @param added - true if the wrapper has been added to a cache, false if
 	 *            removed.
 	 */
 	void setCached(boolean added) {
@@ -105,8 +102,7 @@ public class CacheableBitmapWrapper {
 	 * Used to signal to the wrapper whether it is being used or not. Being used
 	 * could be that it is being displayed by an ImageView.
 	 * 
-	 * @param beingUsed
-	 *            - true if being used, false if not.
+	 * @param beingUsed - true if being used, false if not.
 	 */
 	public void setBeingUsed(boolean beingUsed) {
 		if (beingUsed) {
@@ -124,8 +120,8 @@ public class CacheableBitmapWrapper {
 	 */
 	private void checkState() {
 		if (mCacheCount <= 0 && mImageViewsCount <= 0 && hasValidBitmap()) {
-			if (BuildConfig.DEBUG) {
-				Log.d(LOG_TAG, "Recycling bitmap with url: " + mUrl);
+			if (Constants.DEBUG) {
+				Log.d(Constants.LOG_TAG, "Recycling bitmap with url: " + mUrl);
 			}
 			mBitmap.recycle();
 		}

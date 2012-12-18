@@ -35,8 +35,9 @@ public class CacheableImageView extends ImageView {
 	}
 
 	/**
+	 * Sets the current {@code CacheableBitmapWrapper}, and displays it Bitmap.
 	 * 
-	 * @param wrapper
+	 * @param wrapper - Wrapper to display.s
 	 */
 	public void setImageCachedBitmap(final CacheableBitmapWrapper wrapper) {
 		if (null != wrapper) {
@@ -66,7 +67,7 @@ public class CacheableImageView extends ImageView {
 		super.setImageResource(resId);
 		resetCachedDrawable();
 	}
-	
+
 	public CacheableBitmapWrapper getCachedBitmapWrapper() {
 		return mDisplayedBitmapWrapper;
 	}

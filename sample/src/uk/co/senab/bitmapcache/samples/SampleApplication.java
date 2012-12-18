@@ -15,9 +15,12 @@
  *******************************************************************************/
 package uk.co.senab.bitmapcache.samples;
 
+import java.io.File;
+
 import uk.co.senab.bitmapcache.BitmapLruCache;
 import android.app.Application;
 import android.content.Context;
+import android.os.Environment;
 
 public class SampleApplication extends Application {
 
@@ -27,8 +30,14 @@ public class SampleApplication extends Application {
 	public void onCreate() {
 		super.onCreate();
 
-		// Using default constructor, using 1/8th of Heap space (RAM)
-		mCache = new BitmapLruCache(this);
+		File cacheLocation = new File(Environment.getExternalStorageDirectory() + "/Android-BitmapCache");
+		cacheLocation.mkdirs();
+
+		BitmapLruCache.Builder builder = new BitmapLruCache.Builder();
+		builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize();
+		builder.setDiskCacheEnabled(true).setDiskCacheLocation(cacheLocation);
+
+		mCache = builder.build();
 	}
 
 	public BitmapLruCache getBitmapCache() {
