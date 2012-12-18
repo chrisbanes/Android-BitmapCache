@@ -223,6 +223,10 @@ public class BitmapLruCache {
 	public CacheableBitmapWrapper put(final String url, final Bitmap bitmap, final boolean cacheToDiskIfEnabled) {
 		CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
 
+		if (null != mMemoryCache) {
+			putIntoMemoryCache(wrapper);
+		}
+
 		if (null != mDiskCache && cacheToDiskIfEnabled) {
 			final ReentrantLock lock = getLockForDiskCacheEdit(url);
 			lock.lock();
@@ -236,10 +240,6 @@ public class BitmapLruCache {
 				lock.unlock();
 				scheduleDiskCacheFlush();
 			}
-		}
-
-		if (null != mMemoryCache) {
-			putIntoMemoryCache(wrapper);
 		}
 
 		return wrapper;
@@ -306,6 +306,11 @@ public class BitmapLruCache {
 			if (null != bitmap) {
 				wrapper = new CacheableBitmapWrapper(url, bitmap);
 
+				if (null != mMemoryCache) {
+					wrapper.setCached(true);
+					mMemoryCache.put(wrapper.getUrl(), wrapper);
+				}
+
 				if (null != mDiskCache && cacheToDiskIfEnabled) {
 					final ReentrantLock lock = getLockForDiskCacheEdit(url);
 					lock.lock();
@@ -320,12 +325,6 @@ public class BitmapLruCache {
 						scheduleDiskCacheFlush();
 					}
 				}
-
-				if (null != mMemoryCache) {
-					wrapper.setCached(true);
-					mMemoryCache.put(wrapper.getUrl(), wrapper);
-				}
-
 			}
 
 			// Finally, delete the temporary file
