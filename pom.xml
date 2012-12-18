@@ -5,7 +5,7 @@
 	<groupId>com.github.chrisbanes.bitmapcache</groupId>
 	<artifactId>parent</artifactId>
 	<packaging>pom</packaging>
-	<version>2.0</version>
+	<version>2.1-SNAPSHOT</version>
 	<name>Android-BitmapCache Project</name>
 	<description>A custom Bitmap cache implementation for Android</description>
 	<url>https://github.com/chrisbanes/Android-BitmapCache</url>
@@ -28,7 +28,7 @@
 		<url>https://github.com/chrisbanes/Android-BitmapCache</url>
 		<connection>scm:git:git://github.com/chrisbanes/Android-BitmapCache.git</connection>
 		<developerConnection>scm:git:git@github.com:chrisbanes/Android-BitmapCache.git</developerConnection>
-		<tag>v2.0</tag>
+		<tag>HEAD</tag>
 	</scm>
 	
 	<developers>
