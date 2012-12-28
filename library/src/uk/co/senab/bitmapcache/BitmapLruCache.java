@@ -106,6 +106,50 @@ public class BitmapLruCache {
 	}
 
 	/**
+	 * Returns whether any of the enabled caches contain the specified URL. As
+	 * this method may read from the file system, this method is not safe to be
+	 * called from the main thread.
+	 * 
+	 * @param url the URL to search for.
+	 * @return {@code true} if any of the caches contain the specified URL,
+	 *         {@code false} otherwise.
+	 */
+	public boolean contains(String url) {
+		return containsInMemoryCache(url) || containsInDiskCache(url);
+	}
+
+	/**
+	 * Returns whether the Disk Cache contains the specified URL. As this method
+	 * may read from the file system, this method is not safe to be called from
+	 * the main thread.
+	 * 
+	 * @param url the URL to search for.
+	 * @return {@code true} if the Disk Cache is enabled and contains the
+	 *         specified URL, {@code false} otherwise.
+	 */
+	public boolean containsInDiskCache(String url) {
+		try {
+			return null != mDiskCache && null != mDiskCache.get(url);
+		} catch (IOException e) {
+			e.printStackTrace();
+
+			return false;
+		}
+	}
+
+	/**
+	 * Returns whether the Memory Cache contains the specified URL. This method
+	 * is safe to be called from the main thread.
+	 * 
+	 * @param url the URL to search for.
+	 * @return {@code true} if the Memory Cache is enabled and contains the
+	 *         specified URL, {@code false} otherwise.
+	 */
+	public boolean containsInMemoryCache(String url) {
+		return null != mMemoryCache && null != mMemoryCache.get(url);
+	}
+
+	/**
 	 * Returns the value for {@code url}. This will check all caches currently
 	 * enabled, meaning that this probably isn't safe to be called on the main
 	 * thread.
@@ -202,7 +246,7 @@ public class BitmapLruCache {
 
 	/**
 	 * Caches {@code bitmap} for {@code url} into all enabled caches. If the
-	 * disk cache is enabled, the bitmap will be compressed losslessly. *
+	 * disk cache is enabled, the bitmap will be compressed losslessly.
 	 * <p/>
 	 * As this method may write to the file system, this method is not safe to
 	 * be called from the main thread.
