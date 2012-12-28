@@ -47,7 +47,7 @@ public class CacheableBitmapWrapper {
 	/**
 	 * @return true - if the wrapper is currently referenced by a cache.
 	 */
-	public boolean isReferencedByCache() {
+	public synchronized boolean isReferencedByCache() {
 		return mCacheCount > 0;
 	}
 
@@ -55,7 +55,7 @@ public class CacheableBitmapWrapper {
 	 * @return true - if the bitmap is currently being displayed by a
 	 *         {@link CacheableImageView}.
 	 */
-	public boolean isBeingDisplayed() {
+	public synchronized boolean isBeingDisplayed() {
 		return mImageViewsCount > 0;
 	}
 
@@ -78,7 +78,7 @@ public class CacheableBitmapWrapper {
 	 * 
 	 * @return true - if the bitmap has not been recycled.
 	 */
-	public boolean hasValidBitmap() {
+	public synchronized boolean hasValidBitmap() {
 		return !mBitmap.isRecycled();
 	}
 
@@ -89,7 +89,7 @@ public class CacheableBitmapWrapper {
 	 * @param added - true if the wrapper has been added to a cache, false if
 	 *            removed.
 	 */
-	void setCached(boolean added) {
+	synchronized void setCached(boolean added) {
 		if (added) {
 			mCacheCount++;
 		} else {
@@ -104,7 +104,7 @@ public class CacheableBitmapWrapper {
 	 * 
 	 * @param beingUsed - true if being used, false if not.
 	 */
-	public void setBeingUsed(boolean beingUsed) {
+	public synchronized void setBeingUsed(boolean beingUsed) {
 		if (beingUsed) {
 			mImageViewsCount++;
 		} else {
