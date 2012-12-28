@@ -26,6 +26,15 @@ final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapWrapper
 		super(maxSize);
 	}
 
+	CacheableBitmapWrapper put(CacheableBitmapWrapper value) {
+		if (null != value) {
+			value.setCached(true);
+			return put(value.getUrl(), value);
+		}
+
+		return null;
+	}
+
 	@Override
 	protected int sizeOf(String key, CacheableBitmapWrapper value) {
 		if (value.hasValidBitmap()) {

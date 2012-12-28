@@ -152,7 +152,7 @@ public class BitmapLruCache {
 
 					if (null != bitmap) {
 						result = new CacheableBitmapWrapper(url, bitmap);
-						putIntoMemoryCache(result);
+						mMemoryCache.put(result);
 					} else {
 						// If we get here, the file in the cache can't be
 						// decoded. Remove it and schedule a flush.
@@ -232,7 +232,7 @@ public class BitmapLruCache {
 		CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
 
 		if (null != mMemoryCache) {
-			putIntoMemoryCache(wrapper);
+			mMemoryCache.put(wrapper);
 		}
 
 		if (null != mDiskCache && cacheToDiskIfEnabled) {
@@ -388,11 +388,6 @@ public class BitmapLruCache {
 			}
 			return lock;
 		}
-	}
-
-	private void putIntoMemoryCache(CacheableBitmapWrapper wrapper) {
-		wrapper.setCached(true);
-		mMemoryCache.put(wrapper.getUrl(), wrapper);
 	}
 
 	private void scheduleDiskCacheFlush() {
