@@ -39,11 +39,10 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 			imageView.setImageDrawable(this);
 
 			/**
-			 * There's a bug in ImageView which means that setVisible(...) isn't
-			 * called when the Drawable is changed after onAttachedToWindow().
-			 * Thus, if the ImageView is already attached to the Window, we have
-			 * to call setBeingUsed(true) to make sure our reference count is
-			 * correct.
+			 * ImageView does not call setVisible(...) when the Drawable is
+			 * changed after onAttachedToWindow(). Thus, if the ImageView is
+			 * already attached to the Window, we have to call
+			 * setBeingUsed(true) to make sure our reference count is correct.
 			 */
 			if (!isVisible()) {
 				setBeingUsed(true);
