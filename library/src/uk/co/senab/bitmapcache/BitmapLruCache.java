@@ -77,30 +77,19 @@ public class BitmapLruCache {
 		return Md5.encode(url);
 	}
 
-	private final DiskLruCache mDiskCache;
-	private final BitmapMemoryLruCache mMemoryCache;
+	private DiskLruCache mDiskCache;
+	private BitmapMemoryLruCache mMemoryCache;
 
 	// Variables which are only used when the Disk Cache is enabled
-	private final HashMap<String, ReentrantLock> mDiskCacheEditLocks;
-	private final ScheduledThreadPoolExecutor mDiskCacheFlusherExecutor;
-	private final DiskCacheFlushRunnable mDiskCacheFlusherRunnable;
+	private HashMap<String, ReentrantLock> mDiskCacheEditLocks;
+	private ScheduledThreadPoolExecutor mDiskCacheFlusherExecutor;
+	private DiskCacheFlushRunnable mDiskCacheFlusherRunnable;
 
 	// Transient
 	private ScheduledFuture<?> mDiskCacheFuture;
 
-	protected BitmapLruCache(BitmapMemoryLruCache memoryCache, DiskLruCache diskCache) {
+	protected BitmapLruCache(BitmapMemoryLruCache memoryCache) {
 		mMemoryCache = memoryCache;
-		mDiskCache = diskCache;
-
-		if (null != diskCache) {
-			mDiskCacheEditLocks = new HashMap<String, ReentrantLock>();
-			mDiskCacheFlusherExecutor = new ScheduledThreadPoolExecutor(1);
-			mDiskCacheFlusherRunnable = new DiskCacheFlushRunnable(diskCache);
-		} else {
-			mDiskCacheEditLocks = null;
-			mDiskCacheFlusherExecutor = null;
-			mDiskCacheFlusherRunnable = null;
-		}
 	}
 
 	/**
@@ -421,6 +410,16 @@ public class BitmapLruCache {
 		}
 	}
 
+	synchronized void setDiskCache(DiskLruCache diskCache) {
+		mDiskCache = diskCache;
+
+		if (null != diskCache) {
+			mDiskCacheEditLocks = new HashMap<String, ReentrantLock>();
+			mDiskCacheFlusherExecutor = new ScheduledThreadPoolExecutor(1);
+			mDiskCacheFlusherRunnable = new DiskCacheFlushRunnable(diskCache);
+		}
+	}
+
 	private ReentrantLock getLockForDiskCacheEdit(String url) {
 		synchronized (mDiskCacheEditLocks) {
 			ReentrantLock lock = mDiskCacheEditLocks.get(url);
@@ -496,7 +495,6 @@ public class BitmapLruCache {
 		 */
 		public BitmapLruCache build() {
 			BitmapMemoryLruCache memoryCache = null;
-			DiskLruCache diskCache = null;
 
 			if (isValidOptionsForMemoryCache()) {
 				if (Constants.DEBUG) {
@@ -505,18 +503,26 @@ public class BitmapLruCache {
 				memoryCache = new BitmapMemoryLruCache(mMemoryCacheMaxSize);
 			}
 
+			final BitmapLruCache cache = new BitmapLruCache(memoryCache);
+
 			if (isValidOptionsForDiskCache()) {
-				try {
-					if (Constants.DEBUG) {
-						Log.d("BitmapLruCache.Builder", "Creating Disk Cache");
+				new Thread(new Runnable() {
+
+					@Override
+					public void run() {
+						try {
+							cache.setDiskCache(DiskLruCache.open(mDiskCacheLocation, 0, 1, mDiskCacheMaxSize));
+							if (Constants.DEBUG) {
+								Log.d("BitmapLruCache.Builder", "Created Disk Cache");
+							}
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
-					diskCache = DiskLruCache.open(mDiskCacheLocation, 0, 1, mDiskCacheMaxSize);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+				}).start();
 			}
 
-			return new BitmapLruCache(memoryCache, diskCache);
+			return cache;
 		}
 
 		/**
