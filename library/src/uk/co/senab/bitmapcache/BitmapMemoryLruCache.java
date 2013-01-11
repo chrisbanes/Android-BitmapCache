@@ -17,16 +17,15 @@ package uk.co.senab.bitmapcache;
 
 import java.util.Map.Entry;
 
-import android.graphics.Bitmap;
 import android.support.v4.util.LruCache;
 
-final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapWrapper> {
+final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapDrawable> {
 
 	BitmapMemoryLruCache(int maxSize) {
 		super(maxSize);
 	}
 
-	CacheableBitmapWrapper put(CacheableBitmapWrapper value) {
+	CacheableBitmapDrawable put(CacheableBitmapDrawable value) {
 		if (null != value) {
 			value.setCached(true);
 			return put(value.getUrl(), value);
@@ -36,24 +35,20 @@ final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapWrapper
 	}
 
 	@Override
-	protected int sizeOf(String key, CacheableBitmapWrapper value) {
-		if (value.hasValidBitmap()) {
-			Bitmap bitmap = value.getBitmap();
-			return bitmap.getRowBytes() * bitmap.getHeight();
-		}
-		return 0;
+	protected int sizeOf(String key, CacheableBitmapDrawable value) {
+		return value.getMemorySize();
 	}
 
 	@Override
-	protected void entryRemoved(boolean evicted, String key, CacheableBitmapWrapper oldValue,
-			CacheableBitmapWrapper newValue) {
+	protected void entryRemoved(boolean evicted, String key, CacheableBitmapDrawable oldValue,
+			CacheableBitmapDrawable newValue) {
 		// Notify the wrapper that it's no longer being cached
 		oldValue.setCached(false);
 	}
 
 	void trimMemory() {
-		for (Entry<String, CacheableBitmapWrapper> entry : snapshot().entrySet()) {
-			CacheableBitmapWrapper value = entry.getValue();
+		for (Entry<String, CacheableBitmapDrawable> entry : snapshot().entrySet()) {
+			CacheableBitmapDrawable value = entry.getValue();
 			if (null == value || !value.isBeingDisplayed()) {
 				remove(entry.getKey());
 			}

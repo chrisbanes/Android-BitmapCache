@@ -38,9 +38,7 @@ import com.jakewharton.DiskLruCache;
  * 
  * <p>
  * Instances of this class should ideally be kept globally with the application,
- * for example in the {@link android.app.Application Application} object. You
- * should also use the bundled {@link CacheableImageView} wherever possible, as
- * the memory cache has a close relationship with it.
+ * for example in the {@link android.app.Application Application} object.
  * </p>
  * 
  * <p>
@@ -156,8 +154,8 @@ public class BitmapLruCache {
 	 * 
 	 * @param url - String representing the URL of the image
 	 */
-	public CacheableBitmapWrapper get(String url) {
-		CacheableBitmapWrapper result = null;
+	public CacheableBitmapDrawable get(String url) {
+		CacheableBitmapDrawable result = null;
 
 		// First try Memory Cache
 		result = getFromMemoryCache(url);
@@ -183,8 +181,8 @@ public class BitmapLruCache {
 	 * @return Value for {@code url} from disk cache, or {@code null} if the
 	 *         disk cache is not enabled.
 	 */
-	public CacheableBitmapWrapper getFromDiskCache(final String url) {
-		CacheableBitmapWrapper result = null;
+	public CacheableBitmapDrawable getFromDiskCache(final String url) {
+		CacheableBitmapDrawable result = null;
 
 		if (null != mDiskCache) {
 			try {
@@ -195,7 +193,7 @@ public class BitmapLruCache {
 					Bitmap bitmap = BitmapFactory.decodeStream(snapshot.getInputStream(0));
 
 					if (null != bitmap) {
-						result = new CacheableBitmapWrapper(url, bitmap);
+						result = new CacheableBitmapDrawable(url, bitmap);
 						mMemoryCache.put(result);
 					} else {
 						// If we get here, the file in the cache can't be
@@ -226,8 +224,8 @@ public class BitmapLruCache {
 	 * @return Value for {@code url} from memory cache, or {@code null} if the
 	 *         disk cache is not enabled.
 	 */
-	public CacheableBitmapWrapper getFromMemoryCache(final String url) {
-		CacheableBitmapWrapper result = null;
+	public CacheableBitmapDrawable getFromMemoryCache(final String url) {
+		CacheableBitmapDrawable result = null;
 
 		if (null != mMemoryCache) {
 			synchronized (mMemoryCache) {
@@ -253,9 +251,9 @@ public class BitmapLruCache {
 	 * 
 	 * @param url - String representing the URL of the image
 	 * @param bitmap - Bitmap which has been decoded from {@code url}
-	 * @return CacheableBitmapWrapper which can be used to display the bitmap.
+	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
 	 */
-	public CacheableBitmapWrapper put(final String url, final Bitmap bitmap) {
+	public CacheableBitmapDrawable put(final String url, final Bitmap bitmap) {
 		return put(url, bitmap, true);
 	}
 
@@ -270,13 +268,13 @@ public class BitmapLruCache {
 	 * @param bitmap - Bitmap which has been decoded from {@code url}
 	 * @param cacheToDiskIfEnabled - Cache to disk, if the disk cache is
 	 *            enabled.
-	 * @return CacheableBitmapWrapper which can be used to display the bitmap.
+	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
 	 */
-	public CacheableBitmapWrapper put(final String url, final Bitmap bitmap, final boolean cacheToDiskIfEnabled) {
-		CacheableBitmapWrapper wrapper = new CacheableBitmapWrapper(url, bitmap);
+	public CacheableBitmapDrawable put(final String url, final Bitmap bitmap, final boolean cacheToDiskIfEnabled) {
+		CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, bitmap);
 
 		if (null != mMemoryCache) {
-			mMemoryCache.put(wrapper);
+			mMemoryCache.put(d);
 		}
 
 		if (null != mDiskCache && cacheToDiskIfEnabled) {
@@ -294,7 +292,7 @@ public class BitmapLruCache {
 			}
 		}
 
-		return wrapper;
+		return d;
 	}
 
 	/**
@@ -316,9 +314,9 @@ public class BitmapLruCache {
 	 * 
 	 * @param url - String representing the URL of the image
 	 * @param inputStream - InputStream opened from {@code url}
-	 * @return CacheableBitmapWrapper which can be used to display the bitmap.
+	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
 	 */
-	public CacheableBitmapWrapper put(final String url, final InputStream inputStream) {
+	public CacheableBitmapDrawable put(final String url, final InputStream inputStream) {
 		return put(url, inputStream, true);
 	}
 
@@ -333,9 +331,9 @@ public class BitmapLruCache {
 	 * @param inputStream - InputStream opened from {@code url}
 	 * @param cacheToDiskIfEnabled - Cache to disk, if the disk cache is
 	 *            enabled.
-	 * @return CacheableBitmapWrapper which can be used to display the bitmap.
+	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
 	 */
-	public CacheableBitmapWrapper put(final String url, final InputStream inputStream,
+	public CacheableBitmapDrawable put(final String url, final InputStream inputStream,
 			final boolean cacheToDiskIfEnabled) {
 		// First we need to save the stream contents to a temporary file, so it
 		// can be read multiple times
@@ -356,18 +354,18 @@ public class BitmapLruCache {
 			e.printStackTrace();
 		}
 
-		CacheableBitmapWrapper wrapper = null;
+		CacheableBitmapDrawable d = null;
 
 		if (null != tmpFile) {
 			// Try and decode File
 			Bitmap bitmap = BitmapFactory.decodeFile(tmpFile.getAbsolutePath());
 
 			if (null != bitmap) {
-				wrapper = new CacheableBitmapWrapper(url, bitmap);
+				d = new CacheableBitmapDrawable(url, bitmap);
 
 				if (null != mMemoryCache) {
-					wrapper.setCached(true);
-					mMemoryCache.put(wrapper.getUrl(), wrapper);
+					d.setCached(true);
+					mMemoryCache.put(d.getUrl(), d);
 				}
 
 				if (null != mDiskCache && cacheToDiskIfEnabled) {
@@ -390,7 +388,7 @@ public class BitmapLruCache {
 			tmpFile.delete();
 		}
 
-		return wrapper;
+		return d;
 	}
 
 	/**

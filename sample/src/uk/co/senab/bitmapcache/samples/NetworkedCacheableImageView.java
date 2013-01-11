@@ -23,11 +23,13 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
-import uk.co.senab.bitmapcache.CacheableBitmapWrapper;
-import uk.co.senab.bitmapcache.CacheableImageView;
+import uk.co.senab.bitmapcache.CacheableBitmapDrawable;
 import android.content.Context;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.widget.ImageView;
 
 /**
  * Simple extension of CacheableImageView which allows downloading of Images of
@@ -38,30 +40,34 @@ import android.util.AttributeSet;
  * @author Chris Banes
  * 
  */
-public class NetworkedCacheableImageView extends CacheableImageView {
+public class NetworkedCacheableImageView extends ImageView {
 
 	/**
 	 * This task simply fetches an Bitmap from the specified URL and wraps it in
 	 * a wrapper. This implementation is NOT 'best practice' or production ready
 	 * code.
 	 */
-	private class ImageUrlAsyncTask extends AsyncTask<String, Void, CacheableBitmapWrapper> {
+	private class ImageUrlAsyncTask extends AsyncTask<String, Void, CacheableBitmapDrawable> {
 
 		@Override
-		protected CacheableBitmapWrapper doInBackground(String... params) {
+		protected CacheableBitmapDrawable doInBackground(String... params) {
 			try {
 				String url = params[0];
 
 				// Now we're not on the main thread we can check all caches
-				CacheableBitmapWrapper result = mCache.get(url);
+				CacheableBitmapDrawable result = mCache.get(url);
 
 				if (null == result) {
+					Log.d("ImageUrlAsyncTask", "Downloading: " + url);
+
 					// The bitmap isn't cached so download from the web
 					HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
 					InputStream is = new BufferedInputStream(conn.getInputStream());
 
 					// Add to cache
 					result = mCache.put(url, is);
+				} else {
+					Log.d("ImageUrlAsyncTask", "Got from Cache: " + url);
 				}
 
 				return result;
@@ -76,11 +82,17 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 		}
 
 		@Override
-		protected void onPostExecute(CacheableBitmapWrapper result) {
+		protected void onPostExecute(CacheableBitmapDrawable result) {
 			super.onPostExecute(result);
 
-			// Display the image
-			setImageCachedBitmap(result);
+			if (null != result) {
+				// If we have a result, call it's display method, giving the
+				// ImageView as a parameter
+				result.display(NetworkedCacheableImageView.this);
+			} else {
+				// If we're don't have a result, just display an empty space
+				setImageDrawable(null);
+			}
 		}
 	}
 
@@ -112,15 +124,15 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 		// Check to see if the memory cache already has the bitmap. We can
 		// safely do
 		// this on the main thread.
-		CacheableBitmapWrapper wrapper = mCache.getFromMemoryCache(url);
+		BitmapDrawable wrapper = mCache.getFromMemoryCache(url);
 
-		if (null != wrapper && wrapper.hasValidBitmap()) {
+		if (null != wrapper) {
 			// The cache has it, so just display it
-			setImageCachedBitmap(wrapper);
+			setImageDrawable(wrapper);
 			return true;
 		} else {
 			// Memory Cache doesn't have the URL, do threaded request...
-			setImageCachedBitmap(null);
+			setImageDrawable(null);
 
 			mCurrentTask = new ImageUrlAsyncTask();
 			mCurrentTask.execute(url);

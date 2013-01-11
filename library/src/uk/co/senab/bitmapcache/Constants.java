@@ -15,10 +15,10 @@
  *******************************************************************************/
 package uk.co.senab.bitmapcache;
 
-public class Constants {
+class Constants {
 
-	public static boolean DEBUG = false;
+	static boolean DEBUG = true;
 
-	public static String LOG_TAG = "BitmapCache";
+	static String LOG_TAG = "BitmapCache";
 
 }
