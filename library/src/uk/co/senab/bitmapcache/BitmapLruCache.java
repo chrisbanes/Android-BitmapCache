@@ -26,6 +26,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Process;
 import android.util.Log;
 
@@ -506,20 +507,24 @@ public class BitmapLruCache {
 			final BitmapLruCache cache = new BitmapLruCache(memoryCache);
 
 			if (isValidOptionsForDiskCache()) {
-				new Thread(new Runnable() {
+				new AsyncTask<Void, Void, DiskLruCache>() {
 
 					@Override
-					public void run() {
+					protected DiskLruCache doInBackground(Void... params) {
 						try {
-							cache.setDiskCache(DiskLruCache.open(mDiskCacheLocation, 0, 1, mDiskCacheMaxSize));
-							if (Constants.DEBUG) {
-								Log.d("BitmapLruCache.Builder", "Created Disk Cache");
-							}
+							return DiskLruCache.open(mDiskCacheLocation, 0, 1, mDiskCacheMaxSize);
 						} catch (IOException e) {
 							e.printStackTrace();
+							return null;
 						}
 					}
-				}).start();
+
+					@Override
+					protected void onPostExecute(DiskLruCache result) {
+						cache.setDiskCache(result);
+					}
+					
+				}.execute();
 			}
 
 			return cache;
