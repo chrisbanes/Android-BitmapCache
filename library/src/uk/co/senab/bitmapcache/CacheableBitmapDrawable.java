@@ -3,7 +3,6 @@ package uk.co.senab.bitmapcache;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.util.Log;
-import android.widget.ImageView;
 
 public class CacheableBitmapDrawable extends BitmapDrawable {
 
@@ -17,12 +16,12 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 	// Number of caches currently referencing the wrapper
 	private int mCacheCount;
 
-	CacheableBitmapDrawable(Bitmap bitmap) {
+	public CacheableBitmapDrawable(Bitmap bitmap) {
 		this(null, bitmap);
 	}
 
 	@SuppressWarnings("deprecation")
-	CacheableBitmapDrawable(String url, Bitmap bitmap) {
+	public CacheableBitmapDrawable(String url, Bitmap bitmap) {
 		super(bitmap);
 
 		mUrl = url;
@@ -31,32 +30,12 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 	}
 
 	/**
-	 * 
-	 * @param imageView
-	 */
-	public final void display(ImageView imageView) {
-		if (null != imageView) {
-			imageView.setImageDrawable(this);
-
-			/**
-			 * ImageView does not call setVisible(...) when the Drawable is
-			 * changed after onAttachedToWindow(). Thus, if the ImageView is
-			 * already attached to the Window, we have to call
-			 * setBeingUsed(true) to make sure our reference count is correct.
-			 */
-			if (!isVisible()) {
-				setBeingUsed(true);
-			}
-		}
-	}
-
-	/**
 	 * @return Amount of heap size currently being used by {@code Bitmap}
 	 */
 	int getMemorySize() {
-		final Bitmap bitmap = getBitmap();
 		int size = 0;
 
+		final Bitmap bitmap = getBitmap();
 		if (null != bitmap && !bitmap.isRecycled()) {
 			size = bitmap.getRowBytes() * bitmap.getHeight();
 		}
@@ -114,22 +93,6 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 		checkState();
 	}
 
-	@Override
-	public boolean setVisible(boolean visible, boolean restart) {
-		if (Constants.DEBUG) {
-			Log.d(LOG_TAG, "setVisible: " + visible);
-		}
-
-		final boolean superResult = super.setVisible(visible, restart);
-
-		// If the visibility has changed, change the reference count
-		if (superResult) {
-			setBeingUsed(visible);
-		}
-
-		return superResult;
-	}
-
 	/**
 	 * Used to signal to the wrapper whether it is being referenced by a cache
 	 * or not.
@@ -152,9 +115,14 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 	 * recycled and freed.
 	 */
 	private void checkState() {
+		if (Constants.DEBUG) {
+			Log.d(LOG_TAG, String.format("checkState() Displaying: %d, Caching: %d, URL: %s", mDisplayingCount,
+					mCacheCount, mUrl));
+		}
+
 		if (mCacheCount <= 0 && mDisplayingCount <= 0 && hasValidBitmap()) {
 			if (Constants.DEBUG) {
-				Log.d(Constants.LOG_TAG, "Recycling bitmap with url: " + mUrl);
+				Log.d(LOG_TAG, "Recycling bitmap with url: " + mUrl);
 			}
 			getBitmap().recycle();
 		}

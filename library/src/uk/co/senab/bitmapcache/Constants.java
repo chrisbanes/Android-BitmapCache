@@ -17,7 +17,7 @@ package uk.co.senab.bitmapcache;
 
 class Constants {
 
-	static boolean DEBUG = true;
+	static boolean DEBUG = false;
 
 	static String LOG_TAG = "BitmapCache";
 

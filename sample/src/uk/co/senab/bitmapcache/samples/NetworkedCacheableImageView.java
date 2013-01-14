@@ -24,12 +24,12 @@ import java.net.URL;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
 import uk.co.senab.bitmapcache.CacheableBitmapDrawable;
+import uk.co.senab.bitmapcache.CacheableImageView;
 import android.content.Context;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.widget.ImageView;
 
 /**
  * Simple extension of CacheableImageView which allows downloading of Images of
@@ -40,7 +40,7 @@ import android.widget.ImageView;
  * @author Chris Banes
  * 
  */
-public class NetworkedCacheableImageView extends ImageView {
+public class NetworkedCacheableImageView extends CacheableImageView {
 
 	/**
 	 * This task simply fetches an Bitmap from the specified URL and wraps it in
@@ -84,15 +84,7 @@ public class NetworkedCacheableImageView extends ImageView {
 		@Override
 		protected void onPostExecute(CacheableBitmapDrawable result) {
 			super.onPostExecute(result);
-
-			if (null != result) {
-				// If we have a result, call it's display method, giving the
-				// ImageView as a parameter
-				result.display(NetworkedCacheableImageView.this);
-			} else {
-				// If we're don't have a result, just display an empty space
-				setImageDrawable(null);
-			}
+			setImageDrawable(result);
 		}
 	}
 
