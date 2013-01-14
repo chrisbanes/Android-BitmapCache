@@ -39,7 +39,9 @@ import com.jakewharton.DiskLruCache;
  * 
  * <p>
  * Instances of this class should ideally be kept globally with the application,
- * for example in the {@link android.app.Application Application} object.
+ * for example in the {@link android.app.Application Application} object. You
+ * should also use the bundled {@link CacheableImageView} wherever possible, as
+ * the memory cache has a close relationship with it.
  * </p>
  * 
  * <p>
@@ -523,7 +525,7 @@ public class BitmapLruCache {
 					protected void onPostExecute(DiskLruCache result) {
 						cache.setDiskCache(result);
 					}
-					
+
 				}.execute();
 			}
 
