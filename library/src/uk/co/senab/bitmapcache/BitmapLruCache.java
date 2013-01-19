@@ -69,7 +69,8 @@ public class BitmapLruCache {
 	static final int DISK_CACHE_FLUSH_DELAY_SECS = 5;
 
 	/**
-	 * @throws IllegalStateException if the calling thread is the main/UI thread.
+	 * @throws IllegalStateException if the calling thread is the main/UI
+	 *             thread.
 	 */
 	private static void checkNotOnMainThread() {
 		if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -163,6 +164,21 @@ public class BitmapLruCache {
 	 * @param url - String representing the URL of the image
 	 */
 	public CacheableBitmapDrawable get(String url) {
+		return get(url, null);
+	}
+
+	/**
+	 * Returns the value for {@code url}. This will check all caches currently
+	 * enabled.
+	 * <p/>
+	 * If you have the disk cache enabled, you should not call this method from
+	 * main/UI thread.
+	 * 
+	 * @param url - String representing the URL of the image
+	 * @param decodeOpts - Options used for decoding the contents from the disk
+	 *            cache only.
+	 */
+	public CacheableBitmapDrawable get(String url, BitmapFactory.Options decodeOpts) {
 		CacheableBitmapDrawable result = null;
 
 		// First try Memory Cache
@@ -170,7 +186,7 @@ public class BitmapLruCache {
 
 		if (null == result) {
 			// Memory Cache failed, so try Disk Cache
-			result = getFromDiskCache(url);
+			result = getFromDiskCache(url, decodeOpts);
 		}
 
 		return result;
@@ -186,10 +202,12 @@ public class BitmapLruCache {
 	 * should call {@link #get(String)} instead.
 	 * 
 	 * @param url - String representing the URL of the image
+	 * @param decodeOpts - Options used for decoding the contents from the disk
+	 *            cache.
 	 * @return Value for {@code url} from disk cache, or {@code null} if the
 	 *         disk cache is not enabled.
 	 */
-	public CacheableBitmapDrawable getFromDiskCache(final String url) {
+	public CacheableBitmapDrawable getFromDiskCache(final String url, final BitmapFactory.Options decodeOpts) {
 		CacheableBitmapDrawable result = null;
 
 		if (null != mDiskCache) {
@@ -200,7 +218,7 @@ public class BitmapLruCache {
 				DiskLruCache.Snapshot snapshot = mDiskCache.get(key);
 				if (null != snapshot) {
 					// Try and decode bitmap
-					Bitmap bitmap = BitmapFactory.decodeStream(snapshot.getInputStream(0));
+					Bitmap bitmap = BitmapFactory.decodeStream(snapshot.getInputStream(0), null, decodeOpts);
 
 					if (null != bitmap) {
 						result = new CacheableBitmapDrawable(url, bitmap);
@@ -256,8 +274,8 @@ public class BitmapLruCache {
 	 * If you have the disk cache enabled, you should not call this method from
 	 * main/UI thread.
 	 * 
-	 * @param url - String representing the URL of the image
-	 * @param bitmap - Bitmap which has been decoded from {@code url}
+	 * @param url - String representing the URL of the image.
+	 * @param bitmap - Bitmap which has been decoded from {@code url}.
 	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
 	 */
 	public CacheableBitmapDrawable put(final String url, final Bitmap bitmap) {
@@ -296,9 +314,10 @@ public class BitmapLruCache {
 	 * The contents of the InputStream will be copied to a temporary file, then
 	 * the file will be decoded into a Bitmap. Providing the decode worked:
 	 * <ul>
-	 * <li>If the memory cache is enabled, the Bitmap will be cached to memory</li>
-	 * <li>If the disk cache is enabled, the contents of the file will be cached
-	 * to disk.</li>
+	 * <li>If the memory cache is enabled, the decoded Bitmap will be cached to
+	 * memory.</li>
+	 * <li>If the disk cache is enabled, the contents of the original stream
+	 * will be cached to disk.</li>
 	 * </ul>
 	 * <p/>
 	 * You should not call this method from the main/UI thread.
@@ -308,6 +327,35 @@ public class BitmapLruCache {
 	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
 	 */
 	public CacheableBitmapDrawable put(final String url, final InputStream inputStream) {
+		return put(url, inputStream, null);
+	}
+
+	/**
+	 * Caches resulting bitmap from {@code inputStream} for {@code url} into all
+	 * enabled caches. This version of the method should be preferred as it
+	 * allows the original image contents to be cached, rather than a
+	 * re-compressed version.
+	 * <p />
+	 * The contents of the InputStream will be copied to a temporary file, then
+	 * the file will be decoded into a Bitmap, using the optional
+	 * <code>decodeOpts</code>. Providing the decode worked:
+	 * <ul>
+	 * <li>If the memory cache is enabled, the decoded Bitmap will be cached to
+	 * memory.</li>
+	 * <li>If the disk cache is enabled, the contents of the original stream
+	 * will be cached to disk.</li>
+	 * </ul>
+	 * <p/>
+	 * You should not call this method from the main/UI thread.
+	 * 
+	 * @param url - String representing the URL of the image
+	 * @param inputStream - InputStream opened from {@code url}
+	 * @param decodeOpts - Options used for decoding. This does not affect what
+	 *            is cached in the disk cache (if enabled).
+	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
+	 */
+	public CacheableBitmapDrawable put(final String url, final InputStream inputStream,
+			final BitmapFactory.Options decodeOpts) {
 		checkNotOnMainThread();
 
 		// First we need to save the stream contents to a temporary file, so it
@@ -333,7 +381,7 @@ public class BitmapLruCache {
 
 		if (null != tmpFile) {
 			// Try and decode File
-			Bitmap bitmap = BitmapFactory.decodeFile(tmpFile.getAbsolutePath());
+			Bitmap bitmap = BitmapFactory.decodeFile(tmpFile.getAbsolutePath(), decodeOpts);
 
 			if (null != bitmap) {
 				d = new CacheableBitmapDrawable(url, bitmap);
