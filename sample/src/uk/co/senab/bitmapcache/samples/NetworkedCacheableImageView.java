@@ -28,6 +28,7 @@ import uk.co.senab.bitmapcache.CacheableImageView;
 import android.content.Context;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
 
@@ -127,7 +128,13 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 			setImageDrawable(null);
 
 			mCurrentTask = new ImageUrlAsyncTask();
-			mCurrentTask.execute(url);
+
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+				SDK11.executeOnThreadPool(mCurrentTask, url);
+			} else {
+				mCurrentTask.execute(url);
+			}
+
 			return false;
 		}
 	}
