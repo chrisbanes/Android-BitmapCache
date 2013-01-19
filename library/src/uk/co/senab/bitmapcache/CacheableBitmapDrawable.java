@@ -13,6 +13,9 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 	// Number of Views currently displaying bitmap
 	private int mDisplayingCount;
 
+	// Has it been displayed yet
+	private boolean mHasBeenDisplayed;
+
 	// Number of caches currently referencing the wrapper
 	private int mCacheCount;
 
@@ -87,6 +90,7 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 	public synchronized void setBeingUsed(boolean beingUsed) {
 		if (beingUsed) {
 			mDisplayingCount++;
+			mHasBeenDisplayed = true;
 		} else {
 			mDisplayingCount--;
 		}
@@ -116,11 +120,12 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 	 */
 	private void checkState() {
 		if (Constants.DEBUG) {
-			Log.d(LOG_TAG, String.format("checkState() Displaying: %d, Caching: %d, URL: %s", mDisplayingCount,
-					mCacheCount, mUrl));
+			Log.d(LOG_TAG, String.format("checkState(). Been Displayed: %b, Displaying: %d, Caching: %d, URL: %s",
+					mHasBeenDisplayed, mDisplayingCount, mCacheCount, mUrl));
 		}
 
-		if (mCacheCount <= 0 && mDisplayingCount <= 0 && hasValidBitmap()) {
+		// We only want to recycle if it has been displayed.
+		if (mHasBeenDisplayed && mCacheCount <= 0 && mDisplayingCount <= 0 && hasValidBitmap()) {
 			if (Constants.DEBUG) {
 				Log.d(LOG_TAG, "Recycling bitmap with url: " + mUrl);
 			}

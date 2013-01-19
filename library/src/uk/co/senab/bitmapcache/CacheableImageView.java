@@ -23,28 +23,15 @@ import android.widget.ImageView;
 
 public class CacheableImageView extends ImageView {
 
-	private static class UnsetRunnable implements Runnable {
-		private CacheableBitmapDrawable mDrawable;
-
-		public UnsetRunnable(CacheableBitmapDrawable drawable) {
-			mDrawable = drawable;
-		}
-
-		@Override
-		public void run() {
-			mDrawable.setBeingUsed(false);
-		}
-	}
-
 	private static void onDrawableSet(Drawable drawable) {
 		if (drawable instanceof CacheableBitmapDrawable) {
 			((CacheableBitmapDrawable) drawable).setBeingUsed(true);
 		}
 	}
 
-	private void onDrawableUnset(final Drawable drawable) {
+	private static void onDrawableUnset(final Drawable drawable) {
 		if (drawable instanceof CacheableBitmapDrawable) {
-			post(new UnsetRunnable((CacheableBitmapDrawable) drawable));
+			((CacheableBitmapDrawable) drawable).setBeingUsed(false);
 		}
 	}
 
