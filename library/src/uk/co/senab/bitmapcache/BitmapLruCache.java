@@ -27,6 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.os.Looper;
 import android.os.Process;
 import android.util.Log;
 
@@ -68,6 +69,15 @@ public class BitmapLruCache {
 	static final int DISK_CACHE_FLUSH_DELAY_SECS = 5;
 
 	/**
+	 * @throws IllegalStateException if the calling thread is the main/UI thread.
+	 */
+	private static void checkNotOnMainThread() {
+		if (Looper.myLooper() == Looper.getMainLooper()) {
+			throw new IllegalStateException("This method should not be called from the main/UI thread.");
+		}
+	}
+
+	/**
 	 * The disk cache only accepts a reduced range of characters for the key
 	 * values. This method transforms the {@code url} into something accepted
 	 * from {@link DiskLruCache}. Currently we simply return a MD5 hash of the
@@ -96,9 +106,10 @@ public class BitmapLruCache {
 	}
 
 	/**
-	 * Returns whether any of the enabled caches contain the specified URL. As
-	 * this method may read from the file system, this method is not safe to be
-	 * called from the main thread.
+	 * Returns whether any of the enabled caches contain the specified URL.
+	 * <p/>
+	 * If you have the disk cache enabled, you should not call this method from
+	 * main/UI thread.
 	 * 
 	 * @param url the URL to search for.
 	 * @return {@code true} if any of the caches contain the specified URL,
@@ -109,22 +120,25 @@ public class BitmapLruCache {
 	}
 
 	/**
-	 * Returns whether the Disk Cache contains the specified URL. As this method
-	 * may read from the file system, this method is not safe to be called from
-	 * the main thread.
+	 * Returns whether the Disk Cache contains the specified URL. You should not
+	 * call this method from main/UI thread.
 	 * 
 	 * @param url the URL to search for.
 	 * @return {@code true} if the Disk Cache is enabled and contains the
 	 *         specified URL, {@code false} otherwise.
 	 */
 	public boolean containsInDiskCache(String url) {
-		try {
-			return null != mDiskCache && null != mDiskCache.get(url);
-		} catch (IOException e) {
-			e.printStackTrace();
+		if (null != mDiskCache) {
+			checkNotOnMainThread();
 
-			return false;
+			try {
+				return null != mDiskCache.get(url);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
+
+		return false;
 	}
 
 	/**
@@ -141,8 +155,10 @@ public class BitmapLruCache {
 
 	/**
 	 * Returns the value for {@code url}. This will check all caches currently
-	 * enabled, meaning that this probably isn't safe to be called on the main
-	 * thread.
+	 * enabled.
+	 * <p/>
+	 * If you have the disk cache enabled, you should not call this method from
+	 * main/UI thread.
 	 * 
 	 * @param url - String representing the URL of the image
 	 */
@@ -161,10 +177,10 @@ public class BitmapLruCache {
 	}
 
 	/**
-	 * Returns the value for {@code url} in the disk cache only. As this will
-	 * read from the file system, this method is not safe to be called from the
-	 * main thread. If enabled, the result of this method will be cached in the
-	 * memory cache.
+	 * Returns the value for {@code url} in the disk cache only. You should not
+	 * call this method from main/UI thread.
+	 * <p/>
+	 * If enabled, the result of this method will be cached in the memory cache.
 	 * <p />
 	 * Unless you have a specific requirement to only query the disk cache, you
 	 * should call {@link #get(String)} instead.
@@ -177,6 +193,8 @@ public class BitmapLruCache {
 		CacheableBitmapDrawable result = null;
 
 		if (null != mDiskCache) {
+			checkNotOnMainThread();
+
 			try {
 				final String key = transformUrlForDiskCacheKey(url);
 				DiskLruCache.Snapshot snapshot = mDiskCache.get(key);
@@ -209,9 +227,6 @@ public class BitmapLruCache {
 	 * You should check the result of this method before starting a threaded
 	 * call.
 	 * 
-	 * Unless you have a specific requirement to only query the disk cache, you
-	 * should call {@link #get(String)} instead.
-	 * 
 	 * @param url - String representing the URL of the image
 	 * @return Value for {@code url} from memory cache, or {@code null} if the
 	 *         disk cache is not enabled.
@@ -234,14 +249,12 @@ public class BitmapLruCache {
 		return result;
 	}
 
-	
-
 	/**
 	 * Caches {@code bitmap} for {@code url} into all enabled caches. If the
 	 * disk cache is enabled, the bitmap will be compressed losslessly.
 	 * <p/>
-	 * As this method may write to the file system, this method is not safe to
-	 * be called from the main thread.
+	 * If you have the disk cache enabled, you should not call this method from
+	 * main/UI thread.
 	 * 
 	 * @param url - String representing the URL of the image
 	 * @param bitmap - Bitmap which has been decoded from {@code url}
@@ -255,6 +268,8 @@ public class BitmapLruCache {
 		}
 
 		if (null != mDiskCache) {
+			checkNotOnMainThread();
+
 			final ReentrantLock lock = getLockForDiskCacheEdit(url);
 			lock.lock();
 			try {
@@ -286,14 +301,15 @@ public class BitmapLruCache {
 	 * to disk.</li>
 	 * </ul>
 	 * <p/>
-	 * As this method may write to the file system, this method is not safe to
-	 * be called from the main thread.
+	 * You should not call this method from the main/UI thread.
 	 * 
 	 * @param url - String representing the URL of the image
 	 * @param inputStream - InputStream opened from {@code url}
 	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
 	 */
 	public CacheableBitmapDrawable put(final String url, final InputStream inputStream) {
+		checkNotOnMainThread();
+
 		// First we need to save the stream contents to a temporary file, so it
 		// can be read multiple times
 		File tmpFile = null;
@@ -352,6 +368,9 @@ public class BitmapLruCache {
 
 	/**
 	 * Removes the entry for {@code url} from all enabled caches, if it exists.
+	 * <p/>
+	 * If you have the disk cache enabled, you should not call this method from
+	 * main/UI thread.
 	 */
 	public void remove(String url) {
 		if (null != mMemoryCache) {
@@ -359,6 +378,8 @@ public class BitmapLruCache {
 		}
 
 		if (null != mDiskCache) {
+			checkNotOnMainThread();
+
 			try {
 				mDiskCache.remove(transformUrlForDiskCacheKey(url));
 				scheduleDiskCacheFlush();
