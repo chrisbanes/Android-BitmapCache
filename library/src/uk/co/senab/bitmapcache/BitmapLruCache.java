@@ -234,6 +234,8 @@ public class BitmapLruCache {
 		return result;
 	}
 
+	
+
 	/**
 	 * Caches {@code bitmap} for {@code url} into all enabled caches. If the
 	 * disk cache is enabled, the bitmap will be compressed losslessly.
@@ -246,30 +248,13 @@ public class BitmapLruCache {
 	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
 	 */
 	public CacheableBitmapDrawable put(final String url, final Bitmap bitmap) {
-		return put(url, bitmap, true);
-	}
-
-	/**
-	 * Advanced version of {@link #put(String, Bitmap)} which allows selective
-	 * caching to the disk cache (if the disk cache is enabled).
-	 * <p/>
-	 * As this method may write to the file system, this method is not safe to
-	 * be called from the main thread.
-	 * 
-	 * @param url - String representing the URL of the image
-	 * @param bitmap - Bitmap which has been decoded from {@code url}
-	 * @param cacheToDiskIfEnabled - Cache to disk, if the disk cache is
-	 *            enabled.
-	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
-	 */
-	public CacheableBitmapDrawable put(final String url, final Bitmap bitmap, final boolean cacheToDiskIfEnabled) {
 		CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, bitmap);
 
 		if (null != mMemoryCache) {
 			mMemoryCache.put(d);
 		}
 
-		if (null != mDiskCache && cacheToDiskIfEnabled) {
+		if (null != mDiskCache) {
 			final ReentrantLock lock = getLockForDiskCacheEdit(url);
 			lock.lock();
 			try {
@@ -309,24 +294,6 @@ public class BitmapLruCache {
 	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
 	 */
 	public CacheableBitmapDrawable put(final String url, final InputStream inputStream) {
-		return put(url, inputStream, true);
-	}
-
-	/**
-	 * Advanced version of {@link #put(String, InputStream)} which allows
-	 * selective caching to the disk cache (if the disk cache is enabled).
-	 * <p/>
-	 * As this method may write to the file system, this method is not safe to
-	 * be called from the main thread.
-	 * 
-	 * @param url - String representing the URL of the image
-	 * @param inputStream - InputStream opened from {@code url}
-	 * @param cacheToDiskIfEnabled - Cache to disk, if the disk cache is
-	 *            enabled.
-	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
-	 */
-	public CacheableBitmapDrawable put(final String url, final InputStream inputStream,
-			final boolean cacheToDiskIfEnabled) {
 		// First we need to save the stream contents to a temporary file, so it
 		// can be read multiple times
 		File tmpFile = null;
@@ -360,7 +327,7 @@ public class BitmapLruCache {
 					mMemoryCache.put(d.getUrl(), d);
 				}
 
-				if (null != mDiskCache && cacheToDiskIfEnabled) {
+				if (null != mDiskCache) {
 					final ReentrantLock lock = getLockForDiskCacheEdit(url);
 					lock.lock();
 					try {
