@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
@@ -67,7 +66,7 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 				if (null == mImageViewRef.get()) {
 					return null;
 				}
-				
+
 				final String url = params[0];
 
 				// Now we're not on the main thread we can check all caches
@@ -88,10 +87,8 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 
 				return result;
 
-			} catch (MalformedURLException e) {
-				e.printStackTrace();
 			} catch (IOException e) {
-				e.printStackTrace();
+				Log.e("ImageUrlAsyncTask", e.toString());
 			}
 
 			return null;
