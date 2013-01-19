@@ -18,6 +18,7 @@ package uk.co.senab.bitmapcache.samples;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -31,6 +32,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.widget.ImageView;
 
 /**
  * Simple extension of CacheableImageView which allows downloading of Images of
@@ -48,12 +50,25 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 	 * a wrapper. This implementation is NOT 'best practice' or production ready
 	 * code.
 	 */
-	private class ImageUrlAsyncTask extends AsyncTask<String, Void, CacheableBitmapDrawable> {
+	private static class ImageUrlAsyncTask extends AsyncTask<String, Void, CacheableBitmapDrawable> {
+
+		private final BitmapLruCache mCache;
+		private final WeakReference<ImageView> mImageViewRef;
+
+		ImageUrlAsyncTask(ImageView imageView, BitmapLruCache cache) {
+			mCache = cache;
+			mImageViewRef = new WeakReference<ImageView>(imageView);
+		}
 
 		@Override
 		protected CacheableBitmapDrawable doInBackground(String... params) {
 			try {
-				String url = params[0];
+				// Return early if the ImageView has disappeared.
+				if (null == mImageViewRef.get()) {
+					return null;
+				}
+				
+				final String url = params[0];
 
 				// Now we're not on the main thread we can check all caches
 				CacheableBitmapDrawable result = mCache.get(url);
@@ -85,7 +100,11 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 		@Override
 		protected void onPostExecute(CacheableBitmapDrawable result) {
 			super.onPostExecute(result);
-			setImageDrawable(result);
+
+			ImageView iv = mImageViewRef.get();
+			if (null != iv) {
+				iv.setImageDrawable(result);
+			}
 		}
 	}
 
@@ -127,7 +146,7 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 			// Memory Cache doesn't have the URL, do threaded request...
 			setImageDrawable(null);
 
-			mCurrentTask = new ImageUrlAsyncTask();
+			mCurrentTask = new ImageUrlAsyncTask(this, mCache);
 
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
 				SDK11.executeOnThreadPool(mCurrentTask, url);
