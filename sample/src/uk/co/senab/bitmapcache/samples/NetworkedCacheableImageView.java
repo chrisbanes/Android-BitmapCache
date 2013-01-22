@@ -26,10 +26,12 @@ import uk.co.senab.bitmapcache.BitmapLruCache;
 import uk.co.senab.bitmapcache.CacheableBitmapDrawable;
 import uk.co.senab.bitmapcache.CacheableImageView;
 import android.content.Context;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.widget.ImageView;
 
@@ -53,10 +55,12 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 
 		private final BitmapLruCache mCache;
 		private final WeakReference<ImageView> mImageViewRef;
+		private final BitmapFactory.Options mDecodeOpts;
 
-		ImageUrlAsyncTask(ImageView imageView, BitmapLruCache cache) {
+		ImageUrlAsyncTask(ImageView imageView, BitmapLruCache cache, BitmapFactory.Options decodeOpts) {
 			mCache = cache;
 			mImageViewRef = new WeakReference<ImageView>(imageView);
+			mDecodeOpts = decodeOpts;
 		}
 
 		@Override
@@ -70,7 +74,7 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 				final String url = params[0];
 
 				// Now we're not on the main thread we can check all caches
-				CacheableBitmapDrawable result = mCache.get(url);
+				CacheableBitmapDrawable result = mCache.get(url, mDecodeOpts);
 
 				if (null == result) {
 					Log.d("ImageUrlAsyncTask", "Downloading: " + url);
@@ -80,7 +84,7 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 					InputStream is = new BufferedInputStream(conn.getInputStream());
 
 					// Add to cache
-					result = mCache.put(url, is);
+					result = mCache.put(url, is, mDecodeOpts);
 				} else {
 					Log.d("ImageUrlAsyncTask", "Got from Cache: " + url);
 				}
@@ -113,10 +117,6 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 		mCache = SampleApplication.getApplication(context).getBitmapCache();
 	}
 
-	public boolean loadImage(String url) {
-		return loadImage(url, true);
-	}
-
 	/**
 	 * Loads the Bitmap.
 	 * 
@@ -143,7 +143,14 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 			// Memory Cache doesn't have the URL, do threaded request...
 			setImageDrawable(null);
 
-			mCurrentTask = new ImageUrlAsyncTask(this, mCache);
+			BitmapFactory.Options decodeOpts = null;
+
+			if (!fullSize) {
+				decodeOpts = new BitmapFactory.Options();
+				decodeOpts.inDensity = DisplayMetrics.DENSITY_XHIGH;
+			}
+
+			mCurrentTask = new ImageUrlAsyncTask(this, mCache, decodeOpts);
 
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
 				SDK11.executeOnThreadPool(mCurrentTask, url);

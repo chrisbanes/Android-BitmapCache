@@ -44,7 +44,7 @@ public class PugPagerAdapter extends PagerAdapter {
 		NetworkedCacheableImageView imageView = new NetworkedCacheableImageView(mContext, null);
 
 		String pugUrl = mPugUrls.get(position);
-		imageView.loadImage(pugUrl);
+		imageView.loadImage(pugUrl, true);
 
 		imageView.setScaleType(ScaleType.FIT_CENTER);
 		container.addView(imageView, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
