@@ -21,4 +21,6 @@ class Constants {
 
 	static String LOG_TAG = "BitmapCache";
 
+	static final int UNUSED_DRAWABLE_RECYCLE_DELAY_MS = 1000;
+
 }
