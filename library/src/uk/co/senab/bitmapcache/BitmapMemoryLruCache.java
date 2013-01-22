@@ -16,6 +16,7 @@
 package uk.co.senab.bitmapcache;
 
 import java.util.Map.Entry;
+import java.util.Set;
 
 import android.support.v4.util.LruCache;
 
@@ -47,7 +48,9 @@ final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapDrawabl
 	}
 
 	void trimMemory() {
-		for (Entry<String, CacheableBitmapDrawable> entry : snapshot().entrySet()) {
+		final Set<Entry<String, CacheableBitmapDrawable>> values = snapshot().entrySet();
+
+		for (Entry<String, CacheableBitmapDrawable> entry : values) {
 			CacheableBitmapDrawable value = entry.getValue();
 			if (null == value || !value.isBeingDisplayed()) {
 				remove(entry.getKey());
