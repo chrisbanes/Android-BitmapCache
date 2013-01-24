@@ -15,10 +15,12 @@
  *******************************************************************************/
 package uk.co.senab.bitmapcache;
 
-public class Constants {
+class Constants {
 
-	public static boolean DEBUG = false;
+	static boolean DEBUG = false;
 
-	public static String LOG_TAG = "BitmapCache";
+	static String LOG_TAG = "BitmapCache";
+
+	static final int UNUSED_DRAWABLE_RECYCLE_DELAY_MS = 1000;
 
 }

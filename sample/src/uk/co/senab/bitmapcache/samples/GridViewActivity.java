@@ -23,6 +23,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -65,13 +66,13 @@ public class GridViewActivity extends Activity {
 				JSONObject document = new JSONObject(response);
 
 				JSONArray pugsJsonArray = document.getJSONArray("pugs");
-				ArrayList<String> pugUrls = new ArrayList<String>(pugsJsonArray.length());
+				HashSet<String> pugUrls = new HashSet<String>(pugsJsonArray.length());
 
 				for (int i = 0, z = pugsJsonArray.length(); i < z; i++) {
 					pugUrls.add(pugsJsonArray.getString(i));
 				}
 
-				return pugUrls;
+				return new ArrayList<String>(pugUrls);
 
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
