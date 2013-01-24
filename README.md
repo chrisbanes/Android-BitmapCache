@@ -40,12 +40,12 @@ it distributed to the central repositories. Simply add the following to your
 <dependency>
     <groupId>com.github.chrisbanes.bitmapcache</groupId>
     <artifactId>library</artifactId>
-    <version>2.0</version>
+    <version>2.1</version>
 </dependency>
 ```
 
 ### Requirements
- * [DiskLruCache](https://github.com/JakeWharton/DiskLruCache). Tested with v1.2.1.
+ * [DiskLruCache](https://github.com/JakeWharton/DiskLruCache). Tested with v1.3.1.
  * [Android v4 Support Library](http://developer.android.com/tools/extras/support-library.html). Preferably the latest available.
 
 ## License
