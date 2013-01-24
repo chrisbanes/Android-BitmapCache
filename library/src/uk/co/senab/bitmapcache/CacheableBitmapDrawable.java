@@ -167,7 +167,7 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 				if (Constants.DEBUG) {
 					Log.d(LOG_TAG, "Unused Bitmap which hasn't been displayed, delaying recycle(): " + mUrl);
 				}
-				sHandler.postDelayed(new CheckStateRunnable(), Constants.UNUSED_DRAWABLE_RECYCLE_DELAY_MS);
+				sHandler.postDelayed(new CheckStateRunnable(this), Constants.UNUSED_DRAWABLE_RECYCLE_DELAY_MS);
 			}
 		}
 	}
@@ -178,13 +178,16 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 	 * 
 	 * @author chrisbanes
 	 */
-	private final class CheckStateRunnable implements Runnable {
+	private static final class CheckStateRunnable extends WeakReferenceRunnable<CacheableBitmapDrawable> {
 
-		@Override
-		public void run() {
-			checkState(true);
+		public CheckStateRunnable(CacheableBitmapDrawable object) {
+			super(object);
 		}
 
+		@Override
+		public void run(CacheableBitmapDrawable object) {
+			object.checkState(true);
+		}
 	}
 
 }
