@@ -25,7 +25,10 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 
 	static final String LOG_TAG = "CacheableBitmapDrawable";
 
+    // URL Associated with this Bitmap
 	private final String mUrl;
+
+    private final BitmapLruCache.RecyclePolicy mRecyclePolicy;
 
 	// Number of Views currently displaying bitmap
 	private int mDisplayingCount;
@@ -42,15 +45,12 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 	// Handler which may be used later
 	private static final Handler sHandler = new Handler(Looper.getMainLooper());
 
-	public CacheableBitmapDrawable(Bitmap bitmap) {
-		this(null, bitmap);
-	}
-
 	@SuppressWarnings("deprecation")
-	public CacheableBitmapDrawable(String url, Bitmap bitmap) {
+	CacheableBitmapDrawable(String url, Bitmap bitmap, BitmapLruCache.RecyclePolicy recyclePolicy) {
 		super(bitmap);
 
 		mUrl = url;
+        mRecyclePolicy = recyclePolicy;
 		mDisplayingCount = 0;
 		mCacheCount = 0;
 	}
@@ -178,6 +178,11 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 			Log.d(LOG_TAG, String.format("checkState(). Been Displayed: %b, Displaying: %d, Caching: %d, URL: %s",
 					mHasBeenDisplayed, mDisplayingCount, mCacheCount, mUrl));
 		}
+
+        // If the policy doesn't let us recycle, return now
+        if (!mRecyclePolicy.canRecycle()) {
+             return;
+        }
 
 		if (mCacheCount <= 0 && mDisplayingCount <= 0) {
 			// We're not being referenced or used anywhere

@@ -27,6 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Looper;
 import android.os.Process;
 import android.util.Log;
@@ -48,25 +49,59 @@ import com.jakewharton.DiskLruCache;
  * <p>
  * Clients can call {@link #get(String)} to retrieve a cached value from the
  * given Url. This will check all available caches for the value. There are also
- * the {@link #getFromDiskCache(String)} and {@link #getFromMemoryCache(String)}
+ * the {@link #getFromDiskCache(String, android.graphics.BitmapFactory.Options)} and {@link #getFromMemoryCache(String)}
  * which allow more granular access.
  * </p>
  * 
  * <p>
  * There are a number of update methods. {@link #put(String, InputStream)} and
- * {@link #put(String, InputStream, boolean)} are the preferred versions of the
+ * {@link #put(String, InputStream)} are the preferred versions of the
  * method, as they allow 1:1 caching to disk of the original content. <br />
- * {@link #put(String, Bitmap)} and {@link #put(String, Bitmap, boolean)} should
- * only be used if you can't get access to the original InputStream.
+ * {@link #put(String, Bitmap)}} should only be used if you can't get access to the original InputStream.
  * </p>
  * 
  * @author Chris Banes
  */
 public class BitmapLruCache {
 
-	// The number of seconds after the last edit that the Disk Cache should be
-	// flushed
-	static final int DISK_CACHE_FLUSH_DELAY_SECS = 5;
+    /**
+     * The recycle policy controls if the {@link android.graphics.Bitmap#recycle()} is automatically called, when it is
+     * no longer being used. To set this, use the
+     * {@link Builder#setMemoryCacheRecyclePolicy(uk.co.senab.bitmapcache.BitmapLruCache.RecyclePolicy) Builder.setMemoryCacheRecyclePolicy()} method.
+     */
+    public static enum RecyclePolicy {
+        /**
+         * The Bitmap is never recycled automatically.
+         */
+        DISABLED,
+
+        /**
+         * The Bitmap is only automatically recycled if running on a device API v10 or earlier.
+         */
+        PRE_HONEYCOMB_ONLY,
+
+        /**
+         * The Bitmap is always recycled when no longer being used. This is the default.
+         */
+        ALWAYS;
+
+        boolean canRecycle() {
+            switch (this) {
+                case DISABLED:
+                    return false;
+                case PRE_HONEYCOMB_ONLY:
+                    return Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB;
+                case ALWAYS:
+                    return true;
+            }
+
+            return false;
+        }
+    }
+
+    // The number of seconds after the last edit that the Disk Cache should be
+    // flushed
+    static final int DISK_CACHE_FLUSH_DELAY_SECS = 5;
 
 	/**
 	 * @throws IllegalStateException if the calling thread is the main/UI
@@ -94,6 +129,8 @@ public class BitmapLruCache {
 	private DiskLruCache mDiskCache;
 	private BitmapMemoryLruCache mMemoryCache;
 
+    private final RecyclePolicy mRecyclePolicy;
+
 	// Variables which are only used when the Disk Cache is enabled
 	private HashMap<String, ReentrantLock> mDiskCacheEditLocks;
 	private ScheduledThreadPoolExecutor mDiskCacheFlusherExecutor;
@@ -102,8 +139,9 @@ public class BitmapLruCache {
 	// Transient
 	private ScheduledFuture<?> mDiskCacheFuture;
 
-	protected BitmapLruCache(BitmapMemoryLruCache memoryCache) {
+	protected BitmapLruCache(BitmapMemoryLruCache memoryCache, RecyclePolicy recyclePolicy) {
 		mMemoryCache = memoryCache;
+        mRecyclePolicy = recyclePolicy;
 	}
 
 	/**
@@ -221,7 +259,7 @@ public class BitmapLruCache {
 					Bitmap bitmap = BitmapFactory.decodeStream(snapshot.getInputStream(0), null, decodeOpts);
 
 					if (null != bitmap) {
-						result = new CacheableBitmapDrawable(url, bitmap);
+						result = new CacheableBitmapDrawable(url, bitmap, mRecyclePolicy);
 						mMemoryCache.put(result);
 					} else {
 						// If we get here, the file in the cache can't be
@@ -279,7 +317,7 @@ public class BitmapLruCache {
 	 * @return CacheableBitmapDrawable which can be used to display the bitmap.
 	 */
 	public CacheableBitmapDrawable put(final String url, final Bitmap bitmap) {
-		CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, bitmap);
+		CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, bitmap, mRecyclePolicy);
 
 		if (null != mMemoryCache) {
 			mMemoryCache.put(d);
@@ -384,7 +422,7 @@ public class BitmapLruCache {
 			Bitmap bitmap = BitmapFactory.decodeFile(tmpFile.getAbsolutePath(), decodeOpts);
 
 			if (null != bitmap) {
-				d = new CacheableBitmapDrawable(url, bitmap);
+				d = new CacheableBitmapDrawable(url, bitmap, mRecyclePolicy);
 
 				if (null != mMemoryCache) {
 					d.setCached(true);
@@ -504,6 +542,8 @@ public class BitmapLruCache {
 		static final int DEFAULT_DISK_CACHE_MAX_SIZE_MB = 10;
 		static final int DEFAULT_MEM_CACHE_MAX_SIZE_MB = 3;
 
+        static final RecyclePolicy DEFAULT_RECYCLE_POLICY = RecyclePolicy.ALWAYS;
+
 		// Only used for Javadoc
 		static final float DEFAULT_MEMORY_CACHE_HEAP_PERCENTAGE = DEFAULT_MEMORY_CACHE_HEAP_RATIO * 100;
 		static final float MAX_MEMORY_CACHE_HEAP_PERCENTAGE = MAX_MEMORY_CACHE_HEAP_RATIO * 100;
@@ -518,6 +558,7 @@ public class BitmapLruCache {
 
 		private boolean mMemoryCacheEnabled;
 		private int mMemoryCacheMaxSize;
+        private RecyclePolicy mMemoryRecyclePolicy;
 
 		public Builder() {
 			// Disk Cache is disabled by default, but it's default size is set
@@ -526,6 +567,7 @@ public class BitmapLruCache {
 			// Memory Cache is enabled by default, with a small maximum size
 			mMemoryCacheEnabled = true;
 			mMemoryCacheMaxSize = DEFAULT_MEM_CACHE_MAX_SIZE_MB * MEGABYTE;
+            mMemoryRecyclePolicy = DEFAULT_RECYCLE_POLICY;
 		}
 
 		/**
@@ -542,7 +584,7 @@ public class BitmapLruCache {
 				memoryCache = new BitmapMemoryLruCache(mMemoryCacheMaxSize);
 			}
 
-			final BitmapLruCache cache = new BitmapLruCache(memoryCache);
+			final BitmapLruCache cache = new BitmapLruCache(memoryCache, mMemoryRecyclePolicy);
 
 			if (isValidOptionsForDiskCache()) {
 				new AsyncTask<Void, Void, DiskLruCache>() {
@@ -630,8 +672,9 @@ public class BitmapLruCache {
 		/**
 		 * Sets the Memory Cache maximum size to be the default value of
 		 * {@value #DEFAULT_MEMORY_CACHE_HEAP_PERCENTAGE}% of heap size.
-		 * 
-		 * @param context - Context, needed to retrieve heap size.
+         *
+         * @return This Builder object to allow for chaining of calls to set
+         *            methods.
 		 */
 		public Builder setMemoryCacheMaxSizeUsingHeapSize() {
 			return setMemoryCacheMaxSizeUsingHeapSize(DEFAULT_MEMORY_CACHE_HEAP_RATIO);
@@ -641,15 +684,34 @@ public class BitmapLruCache {
 		 * Sets the Memory Cache maximum size to be the given percentage of heap
 		 * size. This is capped at {@value #MAX_MEMORY_CACHE_HEAP_PERCENTAGE}%
 		 * of the app heap size.
-		 * 
-		 * @param context - Context, needed to retrieve heap size.
+		 *
 		 * @param percentageOfHeap - percentage of heap size. Valid values are
 		 *            0.0 <= x <= {@value #MAX_MEMORY_CACHE_HEAP_RATIO}.
+         *
+         * @return This Builder object to allow for chaining of calls to set
+         *            methods.
 		 */
 		public Builder setMemoryCacheMaxSizeUsingHeapSize(float percentageOfHeap) {
 			int size = (int) Math.round(getHeapSize() * Math.min(percentageOfHeap, MAX_MEMORY_CACHE_HEAP_RATIO));
 			return setMemoryCacheMaxSize(size);
 		}
+
+        /**
+         * Sets the recycle policy for the memory cache. This controls if/when {@link android.graphics.Bitmap#recycle()}
+         * is called.
+         *
+         * @param recyclePolicy - New recycle policy, can not be null.
+         * @return This Builder object to allow for chaining of calls to set
+         *            methods.
+         */
+        public Builder setMemoryCacheRecyclePolicy(RecyclePolicy recyclePolicy) {
+            if (null == recyclePolicy) {
+                throw new IllegalArgumentException("The recycle policy can not be null");
+            }
+
+            mMemoryRecyclePolicy = recyclePolicy;
+            return this;
+        }
 
 		private boolean isValidOptionsForDiskCache() {
 			if (mDiskCacheEnabled) {
