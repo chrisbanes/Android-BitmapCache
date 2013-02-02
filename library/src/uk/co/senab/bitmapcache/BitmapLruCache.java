@@ -67,7 +67,7 @@ public class BitmapLruCache {
     /**
      * The recycle policy controls if the {@link android.graphics.Bitmap#recycle()} is automatically called, when it is
      * no longer being used. To set this, use the
-     * {@link Builder#setMemoryCacheRecyclePolicy(uk.co.senab.bitmapcache.BitmapLruCache.RecyclePolicy) Builder.setMemoryCacheRecyclePolicy()} method.
+     * {@link Builder#setRecyclePolicy(uk.co.senab.bitmapcache.BitmapLruCache.RecyclePolicy) Builder.setRecyclePolicy()} method.
      */
     public static enum RecyclePolicy {
         /**
@@ -558,7 +558,7 @@ public class BitmapLruCache {
 
 		private boolean mMemoryCacheEnabled;
 		private int mMemoryCacheMaxSize;
-        private RecyclePolicy mMemoryRecyclePolicy;
+        private RecyclePolicy mRecyclePolicy;
 
 		public Builder() {
 			// Disk Cache is disabled by default, but it's default size is set
@@ -567,7 +567,7 @@ public class BitmapLruCache {
 			// Memory Cache is enabled by default, with a small maximum size
 			mMemoryCacheEnabled = true;
 			mMemoryCacheMaxSize = DEFAULT_MEM_CACHE_MAX_SIZE_MB * MEGABYTE;
-            mMemoryRecyclePolicy = DEFAULT_RECYCLE_POLICY;
+            mRecyclePolicy = DEFAULT_RECYCLE_POLICY;
 		}
 
 		/**
@@ -584,7 +584,7 @@ public class BitmapLruCache {
 				memoryCache = new BitmapMemoryLruCache(mMemoryCacheMaxSize);
 			}
 
-			final BitmapLruCache cache = new BitmapLruCache(memoryCache, mMemoryRecyclePolicy);
+			final BitmapLruCache cache = new BitmapLruCache(memoryCache, mRecyclePolicy);
 
 			if (isValidOptionsForDiskCache()) {
 				new AsyncTask<Void, Void, DiskLruCache>() {
@@ -692,24 +692,24 @@ public class BitmapLruCache {
          *            methods.
 		 */
 		public Builder setMemoryCacheMaxSizeUsingHeapSize(float percentageOfHeap) {
-			int size = (int) Math.round(getHeapSize() * Math.min(percentageOfHeap, MAX_MEMORY_CACHE_HEAP_RATIO));
+			int size = Math.round(getHeapSize() * Math.min(percentageOfHeap, MAX_MEMORY_CACHE_HEAP_RATIO));
 			return setMemoryCacheMaxSize(size);
 		}
 
         /**
-         * Sets the recycle policy for the memory cache. This controls if/when {@link android.graphics.Bitmap#recycle()}
+         * Sets the recycle policy. This controls if {@link android.graphics.Bitmap#recycle()}
          * is called.
          *
          * @param recyclePolicy - New recycle policy, can not be null.
          * @return This Builder object to allow for chaining of calls to set
          *            methods.
          */
-        public Builder setMemoryCacheRecyclePolicy(RecyclePolicy recyclePolicy) {
+        public Builder setRecyclePolicy(RecyclePolicy recyclePolicy) {
             if (null == recyclePolicy) {
                 throw new IllegalArgumentException("The recycle policy can not be null");
             }
 
-            mMemoryRecyclePolicy = recyclePolicy;
+            mRecyclePolicy = recyclePolicy;
             return this;
         }
 
