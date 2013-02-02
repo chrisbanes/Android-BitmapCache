@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011, 2012 Chris Banes.
+ * Copyright 2011, 2013 Chris Banes.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,6 @@ class Constants {
 
 	static String LOG_TAG = "BitmapCache";
 
-	static final int UNUSED_DRAWABLE_RECYCLE_DELAY_MS = 1000;
+	static final int UNUSED_DRAWABLE_RECYCLE_DELAY_MS = 2000;
 
 }
