@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011, 2013 Chris Banes.
+ * Copyright (c) 2013 Chris Banes.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,10 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *******************************************************************************/
+ ******************************************************************************/
 package uk.co.senab.bitmapcache.samples;
-
-import java.util.ArrayList;
 
 import android.content.Context;
 import android.support.v4.view.PagerAdapter;
@@ -24,42 +22,45 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageView.ScaleType;
 
+import java.util.ArrayList;
+
 public class PugPagerAdapter extends PagerAdapter {
 
-	private final ArrayList<String> mPugUrls;
-	private final Context mContext;
+    private final ArrayList<String> mPugUrls;
 
-	public PugPagerAdapter(Context context, ArrayList<String> pugUrls) {
-		mPugUrls = pugUrls;
-		mContext = context;
-	}
+    private final Context mContext;
 
-	@Override
-	public int getCount() {
-		return null != mPugUrls ? mPugUrls.size() : 0;
-	}
+    public PugPagerAdapter(Context context, ArrayList<String> pugUrls) {
+        mPugUrls = pugUrls;
+        mContext = context;
+    }
 
-	@Override
-	public View instantiateItem(ViewGroup container, int position) {
-		NetworkedCacheableImageView imageView = new NetworkedCacheableImageView(mContext, null);
+    @Override
+    public int getCount() {
+        return null != mPugUrls ? mPugUrls.size() : 0;
+    }
 
-		String pugUrl = mPugUrls.get(position);
-		imageView.loadImage(pugUrl, true);
+    @Override
+    public View instantiateItem(ViewGroup container, int position) {
+        NetworkedCacheableImageView imageView = new NetworkedCacheableImageView(mContext, null);
 
-		imageView.setScaleType(ScaleType.FIT_CENTER);
-		container.addView(imageView, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+        String pugUrl = mPugUrls.get(position);
+        imageView.loadImage(pugUrl, true);
 
-		return imageView;
-	}
+        imageView.setScaleType(ScaleType.FIT_CENTER);
+        container.addView(imageView, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
 
-	@Override
-	public void destroyItem(ViewGroup container, int position, Object object) {
-		container.removeView((View) object);
-	}
+        return imageView;
+    }
 
-	@Override
-	public boolean isViewFromObject(View view, Object object) {
-		return view == object;
-	}
+    @Override
+    public void destroyItem(ViewGroup container, int position, Object object) {
+        container.removeView((View) object);
+    }
+
+    @Override
+    public boolean isViewFromObject(View view, Object object) {
+        return view == object;
+    }
 
 }

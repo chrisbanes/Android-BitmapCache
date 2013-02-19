@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011, 2013 Chris Banes.
+ * Copyright (c) 2013 Chris Banes.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,8 +12,17 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *******************************************************************************/
+ ******************************************************************************/
 package uk.co.senab.bitmapcache.samples;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import android.app.Activity;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.widget.GridView;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,88 +34,79 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import android.app.Activity;
-import android.os.AsyncTask;
-import android.os.Bundle;
-import android.widget.GridView;
-
 public class GridViewActivity extends Activity {
 
-	static final int PUG_COUNT = 60;
+    static final int PUG_COUNT = 60;
 
-	/**
-	 * This task simply gets a list of URLs of Photos from PugMe
-	 */
-	private class PugListAsyncTask extends AsyncTask<Void, Void, ArrayList<String>> {
+    /**
+     * This task simply gets a list of URLs of Photos from PugMe
+     */
+    private class PugListAsyncTask extends AsyncTask<Void, Void, ArrayList<String>> {
 
-		static final String PUG_ME_URL = "http://pugme.herokuapp.com/bomb?count=" + PUG_COUNT;
+        static final String PUG_ME_URL = "http://pugme.herokuapp.com/bomb?count=" + PUG_COUNT;
 
-		@Override
-		protected ArrayList<String> doInBackground(Void... params) {
-			try {
-				HttpURLConnection conn = (HttpURLConnection) new URL(PUG_ME_URL).openConnection();
-				conn.setRequestProperty("Accept", "application/json");
-				InputStream is = conn.getInputStream();
+        @Override
+        protected ArrayList<String> doInBackground(Void... params) {
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(PUG_ME_URL).openConnection();
+                conn.setRequestProperty("Accept", "application/json");
+                InputStream is = conn.getInputStream();
 
-				StringBuilder sb = new StringBuilder();
-				BufferedReader r = new BufferedReader(new InputStreamReader(is), 1024);
-				for (String line = r.readLine(); line != null; line = r.readLine()) {
-					sb.append(line);
-				}
-				try {
-					is.close();
-				} catch (IOException e) {
-				}
+                StringBuilder sb = new StringBuilder();
+                BufferedReader r = new BufferedReader(new InputStreamReader(is), 1024);
+                for (String line = r.readLine(); line != null; line = r.readLine()) {
+                    sb.append(line);
+                }
+                try {
+                    is.close();
+                } catch (IOException e) {
+                }
 
-				String response = sb.toString();
-				JSONObject document = new JSONObject(response);
+                String response = sb.toString();
+                JSONObject document = new JSONObject(response);
 
-				JSONArray pugsJsonArray = document.getJSONArray("pugs");
-				HashSet<String> pugUrls = new HashSet<String>(pugsJsonArray.length());
+                JSONArray pugsJsonArray = document.getJSONArray("pugs");
+                HashSet<String> pugUrls = new HashSet<String>(pugsJsonArray.length());
 
-				for (int i = 0, z = pugsJsonArray.length(); i < z; i++) {
-					pugUrls.add(pugsJsonArray.getString(i));
-				}
+                for (int i = 0, z = pugsJsonArray.length(); i < z; i++) {
+                    pugUrls.add(pugsJsonArray.getString(i));
+                }
 
-				return new ArrayList<String>(pugUrls);
+                return new ArrayList<String>(pugUrls);
 
-			} catch (MalformedURLException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
 
-			return null;
-		}
+            return null;
+        }
 
-		@Override
-		protected void onPostExecute(ArrayList<String> result) {
-			super.onPostExecute(result);
+        @Override
+        protected void onPostExecute(ArrayList<String> result) {
+            super.onPostExecute(result);
 
-			PugListAdapter adapter = new PugListAdapter(GridViewActivity.this, result);
-			mGridView.setAdapter(adapter);
-		}
+            PugListAdapter adapter = new PugListAdapter(GridViewActivity.this, result);
+            mGridView.setAdapter(adapter);
+        }
 
-	}
+    }
 
-	private GridView mGridView;
+    private GridView mGridView;
 
-	@Override
-	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-		setContentView(R.layout.activity_gridview);
+        setContentView(R.layout.activity_gridview);
 
-		mGridView = (GridView) findViewById(R.id.gridView1);
+        mGridView = (GridView) findViewById(R.id.gridView1);
 
-		// Start Pug List Download
-		new PugListAsyncTask().execute();
-	}
+        // Start Pug List Download
+        new PugListAsyncTask().execute();
+    }
 
 }
