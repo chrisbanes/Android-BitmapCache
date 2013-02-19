@@ -127,7 +127,7 @@ public class BitmapLruCache {
 	}
 
 	private DiskLruCache mDiskCache;
-	private BitmapMemoryLruCache mMemoryCache;
+	private final BitmapMemoryLruCache mMemoryCache;
 
     private final RecyclePolicy mRecyclePolicy;
 
@@ -217,7 +217,7 @@ public class BitmapLruCache {
 	 *            cache only.
 	 */
 	public CacheableBitmapDrawable get(String url, BitmapFactory.Options decodeOpts) {
-		CacheableBitmapDrawable result = null;
+		CacheableBitmapDrawable result;
 
 		// First try Memory Cache
 		result = getFromMemoryCache(url);
@@ -260,8 +260,10 @@ public class BitmapLruCache {
 
 					if (null != bitmap) {
 						result = new CacheableBitmapDrawable(url, bitmap, mRecyclePolicy);
-						mMemoryCache.put(result);
-					} else {
+                        if (null != mMemoryCache) {
+                            mMemoryCache.put(result);
+                        }
+                    } else {
 						// If we get here, the file in the cache can't be
 						// decoded. Remove it and schedule a flush.
 						mDiskCache.remove(key);
