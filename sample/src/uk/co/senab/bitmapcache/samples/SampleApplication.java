@@ -31,8 +31,16 @@ public class SampleApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        File cacheLocation = new File(
-                Environment.getExternalStorageDirectory() + "/Android-BitmapCache");
+        File cacheLocation;
+
+        // If we have external storage use it for the disk cache. Otherwise we use
+        // the cache dir
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            cacheLocation = new File(
+                    Environment.getExternalStorageDirectory() + "/Android-BitmapCache");
+        } else {
+            cacheLocation = new File(getFilesDir() + "/Android-BitmapCache");
+        }
         cacheLocation.mkdirs();
 
         BitmapLruCache.Builder builder = new BitmapLruCache.Builder();
