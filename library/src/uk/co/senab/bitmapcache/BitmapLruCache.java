@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package uk.co.senab.bitmapcache;
 
 import com.jakewharton.DiskLruCache;
@@ -683,12 +684,13 @@ public class BitmapLruCache {
                     Log.i(Constants.LOG_TAG,
                             "Disk Cache has been enabled, but no location given. Please call setDiskCacheLocation(...)");
                     return false;
+                } else if (!mDiskCacheLocation.canWrite()) {
+                    throw new IllegalArgumentException("Disk Cache Location is not write-able");
                 }
 
                 return true;
             }
             return false;
-
         }
 
         private boolean isValidOptionsForMemoryCache() {
