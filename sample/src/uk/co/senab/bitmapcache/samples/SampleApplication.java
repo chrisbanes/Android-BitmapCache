@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package uk.co.senab.bitmapcache.samples;
 
 import android.app.Application;
@@ -43,7 +44,7 @@ public class SampleApplication extends Application {
         }
         cacheLocation.mkdirs();
 
-        BitmapLruCache.Builder builder = new BitmapLruCache.Builder();
+        BitmapLruCache.Builder builder = new BitmapLruCache.Builder(this);
         builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize();
         builder.setDiskCacheEnabled(true).setDiskCacheLocation(cacheLocation);
 

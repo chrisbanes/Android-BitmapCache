@@ -18,6 +18,7 @@ package uk.co.senab.bitmapcache;
 
 import com.jakewharton.DiskLruCache;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -121,11 +122,19 @@ public class BitmapLruCache {
         return Md5.encode(url);
     }
 
+    private File mTempDir;
+
+    /**
+     * Memory Cache Variables
+     */
+    private BitmapMemoryLruCache mMemoryCache;
+
+    private RecyclePolicy mRecyclePolicy;
+
+    /**
+     * Disk Cache Variables
+     */
     private DiskLruCache mDiskCache;
-
-    private final BitmapMemoryLruCache mMemoryCache;
-
-    private final RecyclePolicy mRecyclePolicy;
 
     // Variables which are only used when the Disk Cache is enabled
     private HashMap<String, ReentrantLock> mDiskCacheEditLocks;
@@ -137,9 +146,10 @@ public class BitmapLruCache {
     // Transient
     private ScheduledFuture<?> mDiskCacheFuture;
 
-    protected BitmapLruCache(BitmapMemoryLruCache memoryCache, RecyclePolicy recyclePolicy) {
-        mMemoryCache = memoryCache;
-        mRecyclePolicy = recyclePolicy;
+    BitmapLruCache(Context context) {
+        if (null != context) {
+            mTempDir = context.getCacheDir();
+        }
     }
 
     /**
@@ -369,7 +379,7 @@ public class BitmapLruCache {
         // can be read multiple times
         File tmpFile = null;
         try {
-            tmpFile = File.createTempFile("bitmapcache_", null);
+            tmpFile = File.createTempFile("bitmapcache_", null, mTempDir);
 
             // Pipe InputStream to file
             Util.copy(inputStream, tmpFile);
@@ -464,6 +474,11 @@ public class BitmapLruCache {
         }
     }
 
+    void setMemoryCache(BitmapMemoryLruCache memoryCache, RecyclePolicy recyclePolicy) {
+        mMemoryCache = memoryCache;
+        mRecyclePolicy = recyclePolicy;
+    }
+
     private ReentrantLock getLockForDiskCacheEdit(String url) {
         synchronized (mDiskCacheEditLocks) {
             ReentrantLock lock = mDiskCacheEditLocks.get(url);
@@ -524,6 +539,8 @@ public class BitmapLruCache {
             return Runtime.getRuntime().maxMemory();
         }
 
+        private Context mContext;
+
         private boolean mDiskCacheEnabled;
 
         private File mDiskCacheLocation;
@@ -536,7 +553,17 @@ public class BitmapLruCache {
 
         private RecyclePolicy mRecyclePolicy;
 
+        /**
+         * @deprecated You should now use {@link Builder(Context)}. This is so that we can reliably
+         * find a write-able location for temporary files.
+         */
         public Builder() {
+            this(null);
+        }
+
+        public Builder(Context context) {
+            mContext = context;
+
             // Disk Cache is disabled by default, but it's default size is set
             mDiskCacheMaxSize = DEFAULT_DISK_CACHE_MAX_SIZE_MB * MEGABYTE;
 
@@ -551,16 +578,14 @@ public class BitmapLruCache {
          *         builder.
          */
         public BitmapLruCache build() {
-            BitmapMemoryLruCache memoryCache = null;
+            final BitmapLruCache cache = new BitmapLruCache(mContext);
 
             if (isValidOptionsForMemoryCache()) {
                 if (Constants.DEBUG) {
                     Log.d("BitmapLruCache.Builder", "Creating Memory Cache");
                 }
-                memoryCache = new BitmapMemoryLruCache(mMemoryCacheMaxSize);
+                cache.setMemoryCache(new BitmapMemoryLruCache(mMemoryCacheMaxSize), mRecyclePolicy);
             }
-
-            final BitmapLruCache cache = new BitmapLruCache(memoryCache, mRecyclePolicy);
 
             if (isValidOptionsForDiskCache()) {
                 new AsyncTask<Void, Void, DiskLruCache>() {
