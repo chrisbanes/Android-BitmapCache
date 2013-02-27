@@ -177,6 +177,7 @@ public class BitmapLruCache {
             checkNotOnMainThread();
 
             try {
+                final String key = transformUrlForDiskCacheKey(url);
                 return null != mDiskCache.get(url);
             } catch (IOException e) {
                 e.printStackTrace();
