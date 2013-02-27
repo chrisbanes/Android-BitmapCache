@@ -177,7 +177,7 @@ public class BitmapLruCache {
             checkNotOnMainThread();
 
             try {
-                return null != mDiskCache.get(url);
+                return null != mDiskCache.get(transformUrlForDiskCacheKey(url));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -321,10 +321,11 @@ public class BitmapLruCache {
         if (null != mDiskCache) {
             checkNotOnMainThread();
 
-            final ReentrantLock lock = getLockForDiskCacheEdit(url);
+            final String key = transformUrlForDiskCacheKey(url);
+            final ReentrantLock lock = getLockForDiskCacheEdit(key);
             lock.lock();
             try {
-                DiskLruCache.Editor editor = mDiskCache.edit(transformUrlForDiskCacheKey(url));
+                DiskLruCache.Editor editor = mDiskCache.edit(key);
                 Util.saveBitmap(bitmap, editor.newOutputStream(0));
                 editor.commit();
             } catch (IOException e) {
