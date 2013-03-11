@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package uk.co.senab.bitmapcache.samples;
 
 import android.content.Context;
@@ -31,6 +32,7 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.RejectedExecutionException;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
 import uk.co.senab.bitmapcache.CacheableBitmapDrawable;
@@ -130,7 +132,7 @@ public class NetworkedCacheableImageView extends CacheableImageView {
     public boolean loadImage(String url, final boolean fullSize) {
         // First check whether there's already a task running, if so cancel it
         if (null != mCurrentTask) {
-            mCurrentTask.cancel(false);
+            mCurrentTask.cancel(true);
         }
 
         // Check to see if the memory cache already has the bitmap. We can
@@ -155,10 +157,14 @@ public class NetworkedCacheableImageView extends CacheableImageView {
 
             mCurrentTask = new ImageUrlAsyncTask(this, mCache, decodeOpts);
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-                SDK11.executeOnThreadPool(mCurrentTask, url);
-            } else {
-                mCurrentTask.execute(url);
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                    SDK11.executeOnThreadPool(mCurrentTask, url);
+                } else {
+                    mCurrentTask.execute(url);
+                }
+            } catch (RejectedExecutionException e) {
+                // This shouldn't happen, but might.
             }
 
             return false;
