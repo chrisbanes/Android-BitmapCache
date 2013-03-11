@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011, 2012 Chris Banes.
+ * Copyright (c) 2013 Chris Banes.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,10 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *******************************************************************************/
+ ******************************************************************************/
 package uk.co.senab.bitmapcache.samples;
-
-import java.util.ArrayList;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -24,51 +22,56 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+
 public class PugListAdapter extends BaseAdapter {
 
-	private final ArrayList<String> mPugUrls;
-	private final Context mContext;
+    private final ArrayList<String> mPugUrls;
 
-	public PugListAdapter(Context context, ArrayList<String> pugUrls) {
-		mPugUrls = pugUrls;
-		mContext = context;
-	}
+    private final Context mContext;
 
-	@Override
-	public int getCount() {
-		return null != mPugUrls ? mPugUrls.size() : 0;
-	}
+    public PugListAdapter(Context context, ArrayList<String> pugUrls) {
+        mPugUrls = pugUrls;
+        mContext = context;
+    }
 
-	@Override
-	public String getItem(int position) {
-		return mPugUrls.get(position);
-	}
+    @Override
+    public int getCount() {
+        return null != mPugUrls ? mPugUrls.size() : 0;
+    }
 
-	@Override
-	public long getItemId(int position) {
-		return position;
-	}
+    @Override
+    public String getItem(int position) {
+        return mPugUrls.get(position);
+    }
 
-	@Override
-	public View getView(int position, View convertView, ViewGroup parent) {
-		if (null == convertView) {
-			convertView = LayoutInflater.from(mContext).inflate(R.layout.gridview_item_layout, parent, false);
-		}
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
 
-		NetworkedCacheableImageView imageView = (NetworkedCacheableImageView) convertView.findViewById(R.id.nciv_pug);
-		TextView status = (TextView) convertView.findViewById(R.id.tv_status);
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+        if (null == convertView) {
+            convertView = LayoutInflater.from(mContext)
+                    .inflate(R.layout.gridview_item_layout, parent, false);
+        }
 
-		final boolean fromCache = imageView.loadImage(mPugUrls.get(position), false);
+        NetworkedCacheableImageView imageView = (NetworkedCacheableImageView) convertView
+                .findViewById(R.id.nciv_pug);
+        TextView status = (TextView) convertView.findViewById(R.id.tv_status);
 
-		if (fromCache) {
-			status.setText("From Memory Cache");
-			status.setBackgroundColor(mContext.getResources().getColor(R.color.translucent_green));
-		} else {
-			status.setText("From Disk/Network");
-			status.setBackgroundColor(mContext.getResources().getColor(R.color.translucent_red));
-		}
+        final boolean fromCache = imageView.loadImage(mPugUrls.get(position), false);
 
-		return convertView;
-	}
+        if (fromCache) {
+            status.setText("From Memory Cache");
+            status.setBackgroundColor(mContext.getResources().getColor(R.color.translucent_green));
+        } else {
+            status.setText("From Disk/Network");
+            status.setBackgroundColor(mContext.getResources().getColor(R.color.translucent_red));
+        }
+
+        return convertView;
+    }
 
 }

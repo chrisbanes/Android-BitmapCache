@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011, 2012 Chris Banes.
+ * Copyright (c) 2013 Chris Banes.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *******************************************************************************/
+ ******************************************************************************/
 package uk.co.senab.bitmapcache.samples;
 
 import android.app.ListActivity;
@@ -24,29 +24,30 @@ import android.widget.ListView;
 
 public class LauncherActivity extends ListActivity {
 
-	public static final String[] options = { "GridView", "ViewPager", };
+    public static final String[] options = {"GridView", "ViewPager",};
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, options));
-	}
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setListAdapter(
+                new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, options));
+    }
 
-	@Override
-	protected void onListItemClick(ListView l, View v, int position, long id) {
-		Intent intent;
+    @Override
+    protected void onListItemClick(ListView l, View v, int position, long id) {
+        Intent intent;
 
-		switch (position) {
-			default:
-			case 0:
-				intent = new Intent(this, GridViewActivity.class);
-				break;
-			case 1:
-				intent = new Intent(this, ViewPagerActivity.class);
-				break;
-		}
+        switch (position) {
+            default:
+            case 0:
+                intent = new Intent(this, GridViewActivity.class);
+                break;
+            case 1:
+                intent = new Intent(this, ViewPagerActivity.class);
+                break;
+        }
 
-		startActivity(intent);
-	}
+        startActivity(intent);
+    }
 
 }

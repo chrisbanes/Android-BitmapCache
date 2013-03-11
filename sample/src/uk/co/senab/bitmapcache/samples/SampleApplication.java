@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011, 2012 Chris Banes.
+ * Copyright (c) 2013 Chris Banes.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,40 +12,51 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *******************************************************************************/
+ ******************************************************************************/
+
 package uk.co.senab.bitmapcache.samples;
 
-import java.io.File;
-
-import uk.co.senab.bitmapcache.BitmapLruCache;
 import android.app.Application;
 import android.content.Context;
 import android.os.Environment;
 
+import java.io.File;
+
+import uk.co.senab.bitmapcache.BitmapLruCache;
+
 public class SampleApplication extends Application {
 
-	private BitmapLruCache mCache;
+    private BitmapLruCache mCache;
 
-	@Override
-	public void onCreate() {
-		super.onCreate();
+    @Override
+    public void onCreate() {
+        super.onCreate();
 
-		File cacheLocation = new File(Environment.getExternalStorageDirectory() + "/Android-BitmapCache");
-		cacheLocation.mkdirs();
+        File cacheLocation;
 
-		BitmapLruCache.Builder builder = new BitmapLruCache.Builder();
-		builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize();
-		builder.setDiskCacheEnabled(true).setDiskCacheLocation(cacheLocation);
+        // If we have external storage use it for the disk cache. Otherwise we use
+        // the cache dir
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            cacheLocation = new File(
+                    Environment.getExternalStorageDirectory() + "/Android-BitmapCache");
+        } else {
+            cacheLocation = new File(getFilesDir() + "/Android-BitmapCache");
+        }
+        cacheLocation.mkdirs();
 
-		mCache = builder.build();
-	}
+        BitmapLruCache.Builder builder = new BitmapLruCache.Builder(this);
+        builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize();
+        builder.setDiskCacheEnabled(true).setDiskCacheLocation(cacheLocation);
 
-	public BitmapLruCache getBitmapCache() {
-		return mCache;
-	}
+        mCache = builder.build();
+    }
 
-	public static SampleApplication getApplication(Context context) {
-		return (SampleApplication) context.getApplicationContext();
-	}
+    public BitmapLruCache getBitmapCache() {
+        return mCache;
+    }
+
+    public static SampleApplication getApplication(Context context) {
+        return (SampleApplication) context.getApplicationContext();
+    }
 
 }
