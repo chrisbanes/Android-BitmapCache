@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package uk.co.senab.bitmapcache;
 
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Handler;
@@ -45,9 +47,9 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
     // Handler which may be used later
     private static final Handler sHandler = new Handler(Looper.getMainLooper());
 
-    @SuppressWarnings("deprecation")
-    CacheableBitmapDrawable(String url, Bitmap bitmap, BitmapLruCache.RecyclePolicy recyclePolicy) {
-        super(bitmap);
+    CacheableBitmapDrawable(String url, Resources resources, Bitmap bitmap,
+            BitmapLruCache.RecyclePolicy recyclePolicy) {
+        super(resources, bitmap);
 
         mUrl = url;
         mRecyclePolicy = recyclePolicy;

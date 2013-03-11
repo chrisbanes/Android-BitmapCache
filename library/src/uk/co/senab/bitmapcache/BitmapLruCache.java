@@ -19,6 +19,7 @@ package uk.co.senab.bitmapcache;
 import com.jakewharton.DiskLruCache;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -124,6 +125,8 @@ public class BitmapLruCache {
 
     private File mTempDir;
 
+    private Resources mResources;
+
     /**
      * Memory Cache Variables
      */
@@ -148,7 +151,11 @@ public class BitmapLruCache {
 
     BitmapLruCache(Context context) {
         if (null != context) {
+            // Make sure we have the application context
+            context = context.getApplicationContext();
+
             mTempDir = context.getCacheDir();
+            mResources = context.getResources();
         }
     }
 
@@ -256,7 +263,8 @@ public class BitmapLruCache {
                             .decodeStream(snapshot.getInputStream(0), null, decodeOpts);
 
                     if (null != bitmap) {
-                        result = new CacheableBitmapDrawable(url, bitmap, mRecyclePolicy);
+                        result = new CacheableBitmapDrawable(url, mResources, bitmap,
+                                mRecyclePolicy);
                         if (null != mMemoryCache) {
                             mMemoryCache.put(result);
                         }
@@ -312,7 +320,8 @@ public class BitmapLruCache {
      * @return CacheableBitmapDrawable which can be used to display the bitmap.
      */
     public CacheableBitmapDrawable put(final String url, final Bitmap bitmap) {
-        CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, bitmap, mRecyclePolicy);
+        CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, mResources, bitmap,
+                mRecyclePolicy);
 
         if (null != mMemoryCache) {
             mMemoryCache.put(d);
@@ -402,7 +411,7 @@ public class BitmapLruCache {
             Bitmap bitmap = BitmapFactory.decodeFile(tmpFile.getAbsolutePath(), decodeOpts);
 
             if (null != bitmap) {
-                d = new CacheableBitmapDrawable(url, bitmap, mRecyclePolicy);
+                d = new CacheableBitmapDrawable(url, mResources, bitmap, mRecyclePolicy);
 
                 if (null != mMemoryCache) {
                     d.setCached(true);
@@ -556,7 +565,7 @@ public class BitmapLruCache {
 
         /**
          * @deprecated You should now use {@link Builder(Context)}. This is so that we can reliably
-         * find a write-able location for temporary files.
+         *             set up correctly.
          */
         public Builder() {
             this(null);
