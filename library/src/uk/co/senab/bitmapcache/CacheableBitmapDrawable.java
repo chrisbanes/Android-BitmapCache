@@ -18,6 +18,7 @@ package uk.co.senab.bitmapcache;
 
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Handler;
 import android.os.Looper;
@@ -30,7 +31,7 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
     // URL Associated with this Bitmap
     private final String mUrl;
 
-    private final BitmapLruCache.RecyclePolicy mRecyclePolicy;
+    private BitmapLruCache.RecyclePolicy mRecyclePolicy;
 
     // Number of Views currently displaying bitmap
     private int mDisplayingCount;
@@ -44,6 +45,9 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
     // The CheckStateRunnable currently being delayed
     private Runnable mCheckStateRunnable;
 
+    // Throwable which records the stack trace when we recycle
+    private Throwable mStackTraceWhenRecycled;
+
     // Handler which may be used later
     private static final Handler sHandler = new Handler(Looper.getMainLooper());
 
@@ -55,6 +59,24 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
         mRecyclePolicy = recyclePolicy;
         mDisplayingCount = 0;
         mCacheCount = 0;
+    }
+
+    @Override
+    public void draw(Canvas canvas) {
+        checkCallback();
+
+        try {
+            super.draw(canvas);
+        } catch (RuntimeException re) {
+            // A RuntimeException has been thrown, probably due to a recycled Bitmap. If we have
+            // one, print the method stack when the recycle() call happened
+            if (null != mStackTraceWhenRecycled) {
+                mStackTraceWhenRecycled.printStackTrace();
+            }
+
+            // Finally throw the original exception
+            throw re;
+        }
     }
 
     /**
@@ -141,6 +163,14 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
         }
     }
 
+    private void checkCallback() {
+        if (!(getCallback() instanceof CacheableImageView)) {
+            mRecyclePolicy = BitmapLruCache.RecyclePolicy.DISABLED;
+            Log.w(LOG_TAG,
+                    "CacheableBitmapDrawable should only be used with CacheableImageView. Turning off all recycling functionality");
+        }
+    }
+
     /**
      * Calls {@link #checkState(boolean)} with default parameter of <code>false</code>.
      */
@@ -188,6 +218,9 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
                 if (Constants.DEBUG) {
                     Log.d(LOG_TAG, "Recycling bitmap with url: " + mUrl);
                 }
+                // Record the current method stack just in case
+                mStackTraceWhenRecycled = new Throwable("Recycled Bitmap Method Stack");
+
                 getBitmap().recycle();
             } else {
                 if (Constants.DEBUG) {
