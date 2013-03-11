@@ -311,6 +311,20 @@ public class BitmapLruCache {
     }
 
     /**
+     * @return true if the Disk Cache is enabled.
+     */
+    public boolean isDiskCacheEnabled() {
+        return null != mDiskCache;
+    }
+
+    /**
+     * @return true if the Memory Cache is enabled.
+     */
+    public boolean isMemoryCacheEnabled() {
+        return null != mMemoryCache;
+    }
+
+    /**
      * Caches {@code bitmap} for {@code url} into all enabled caches. If the disk cache is enabled,
      * the bitmap will be compressed losslessly. <p/> If you have the disk cache enabled, you should
      * not call this method from main/UI thread.
