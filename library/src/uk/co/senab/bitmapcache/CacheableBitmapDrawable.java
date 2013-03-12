@@ -63,8 +63,6 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 
     @Override
     public void draw(Canvas canvas) {
-        checkCallback();
-
         try {
             super.draw(canvas);
         } catch (RuntimeException re) {
@@ -160,14 +158,6 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
             }
             sHandler.removeCallbacks(mCheckStateRunnable);
             mCheckStateRunnable = null;
-        }
-    }
-
-    private void checkCallback() {
-        if (!(getCallback() instanceof CacheableImageView)) {
-            mRecyclePolicy = BitmapLruCache.RecyclePolicy.DISABLED;
-            Log.w(LOG_TAG,
-                    "CacheableBitmapDrawable should only be used with CacheableImageView. Turning off all recycling functionality");
         }
     }
 
