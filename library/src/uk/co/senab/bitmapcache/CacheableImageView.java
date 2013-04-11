@@ -16,6 +16,7 @@
 package uk.co.senab.bitmapcache;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.util.AttributeSet;
@@ -42,7 +43,12 @@ public class CacheableImageView extends ImageView {
     public CacheableImageView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
-
+    
+    @Override
+    public void setImageBitmap(Bitmap bm) {
+    	throw new IllegalArgumentException("Do not use setImageBitmap on CacheableImageView otherwise the content is not cached");
+    }
+    
     @Override
     public void setImageDrawable(Drawable drawable) {
         final Drawable previousDrawable = getDrawable();
