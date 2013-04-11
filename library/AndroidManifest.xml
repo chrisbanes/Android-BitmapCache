@@ -6,7 +6,7 @@
 
     <uses-sdk android:minSdkVersion="4" />
 
-    <application android:label="@string/app_name" >
+    <application android:label="Android-BitmapCache" >
     </application>
 
 </manifest>
