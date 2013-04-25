@@ -16,7 +16,7 @@
 
 package uk.co.senab.bitmapcache;
 
-import com.jakewharton.DiskLruCache;
+import com.jakewharton.disklrucache.DiskLruCache;
 
 import android.content.Context;
 import android.content.res.Resources;
