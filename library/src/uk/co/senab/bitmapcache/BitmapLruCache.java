@@ -728,18 +728,21 @@ public class BitmapLruCache {
         }
 
         private boolean isValidOptionsForDiskCache() {
-            if (mDiskCacheEnabled) {
+            boolean valid = mDiskCacheEnabled;
+
+            if (valid) {
                 if (null == mDiskCacheLocation) {
                     Log.i(Constants.LOG_TAG,
                             "Disk Cache has been enabled, but no location given. Please call setDiskCacheLocation(...)");
-                    return false;
+                    valid = false;
                 } else if (!mDiskCacheLocation.canWrite()) {
-                    throw new IllegalArgumentException("Disk Cache Location is not write-able");
+                    Log.i(Constants.LOG_TAG,
+                            "Disk Cache Location is not write-able, disabling disk caching.");
+                    valid = false;
                 }
-
-                return true;
             }
-            return false;
+
+            return valid;
         }
 
         private boolean isValidOptionsForMemoryCache() {
