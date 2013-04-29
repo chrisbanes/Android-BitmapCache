@@ -51,10 +51,13 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
     // Handler which may be used later
     private static final Handler sHandler = new Handler(Looper.getMainLooper());
 
+    private final int mMemorySize;
+
     CacheableBitmapDrawable(String url, Resources resources, Bitmap bitmap,
             BitmapLruCache.RecyclePolicy recyclePolicy) {
         super(resources, bitmap);
 
+        mMemorySize = null != bitmap ? (bitmap.getRowBytes() * bitmap.getHeight()) : 0;
         mUrl = url;
         mRecyclePolicy = recyclePolicy;
         mDisplayingCount = 0;
@@ -78,17 +81,10 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
     }
 
     /**
-     * @return Amount of heap size currently being used by {@code Bitmap}
+     * @return Amount of memory currently being used by {@code Bitmap}
      */
     int getMemorySize() {
-        int size = 0;
-
-        final Bitmap bitmap = getBitmap();
-        if (null != bitmap && !bitmap.isRecycled()) {
-            size = bitmap.getRowBytes() * bitmap.getHeight();
-        }
-
-        return size;
+       return mMemorySize;
     }
 
     /**
