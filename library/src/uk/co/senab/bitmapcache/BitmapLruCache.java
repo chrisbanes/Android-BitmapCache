@@ -31,6 +31,7 @@ import android.util.Log;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -334,6 +335,25 @@ public class BitmapLruCache {
      * @return CacheableBitmapDrawable which can be used to display the bitmap.
      */
     public CacheableBitmapDrawable put(final String url, final Bitmap bitmap) {
+        return put(url, bitmap, Bitmap.CompressFormat.PNG, 100);
+    }
+
+    /**
+     * Caches {@code bitmap} for {@code url} into all enabled caches. If the disk cache is enabled,
+     * the bitmap will be compressed with the settings you provide.
+     * <p/> If you have the disk cache enabled, you should not call this method from main/UI thread.
+     *
+     * @param url    - String representing the URL of the image.
+     * @param bitmap - Bitmap which has been decoded from {@code url}.
+     * @param compressFormat - Compression Format to use
+     * @param compressQuality  - Level of compression to use
+     * @return CacheableBitmapDrawable which can be used to display the bitmap.
+     *
+     * @see Bitmap#compress(Bitmap.CompressFormat, int, OutputStream)
+     */
+    public CacheableBitmapDrawable put(final String url, final Bitmap bitmap,
+            Bitmap.CompressFormat compressFormat, int compressQuality) {
+
         CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, mResources, bitmap,
                 mRecyclePolicy);
 
@@ -347,13 +367,26 @@ public class BitmapLruCache {
             final String key = transformUrlForDiskCacheKey(url);
             final ReentrantLock lock = getLockForDiskCacheEdit(key);
             lock.lock();
+
+            OutputStream os = null;
+
             try {
                 DiskLruCache.Editor editor = mDiskCache.edit(key);
-                Util.saveBitmap(bitmap, editor.newOutputStream(0));
+                os = editor.newOutputStream(0);
+                bitmap.compress(compressFormat, compressQuality, os);
+                os.flush();
                 editor.commit();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(Constants.LOG_TAG, "Error while writing to disk cache", e);
             } finally {
+                if (null != os) {
+                    try {
+                        os.close();
+                    } catch (IOException e) {
+                        Log.e(Constants.LOG_TAG, "Failed to close output stream", e);
+                    }
+                }
+
                 lock.unlock();
                 scheduleDiskCacheFlush();
             }
@@ -433,16 +466,29 @@ public class BitmapLruCache {
                 }
 
                 if (null != mDiskCache) {
+                    final String key = transformUrlForDiskCacheKey(url);
                     final ReentrantLock lock = getLockForDiskCacheEdit(url);
                     lock.lock();
+
+                    OutputStream os = null;
+
                     try {
-                        DiskLruCache.Editor editor = mDiskCache
-                                .edit(transformUrlForDiskCacheKey(url));
-                        Util.copy(tmpFile, editor.newOutputStream(0));
+                        DiskLruCache.Editor editor = mDiskCache.edit(key);
+                        os = editor.newOutputStream(0);
+                        Util.copy(tmpFile, os);
+                        os.flush();
                         editor.commit();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.e(Constants.LOG_TAG, "Error while writing to disk cache", e);
                     } finally {
+                        if (null != os) {
+                            try {
+                                os.close();
+                            } catch (IOException e) {
+                                Log.e(Constants.LOG_TAG, "Failed to close output stream", e);
+                            }
+                        }
+
                         lock.unlock();
                         scheduleDiskCacheFlush();
                     }

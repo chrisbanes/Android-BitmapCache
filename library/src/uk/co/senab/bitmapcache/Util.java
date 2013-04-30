@@ -15,9 +15,6 @@
  ******************************************************************************/
 package uk.co.senab.bitmapcache;
 
-import android.graphics.Bitmap;
-import android.graphics.Bitmap.CompressFormat;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -33,10 +30,6 @@ class Util {
 
     static long copy(InputStream in, File out) throws IOException {
         return copy(in, new FileOutputStream(out));
-    }
-
-    static void saveBitmap(Bitmap bitmap, OutputStream out) {
-        bitmap.compress(CompressFormat.PNG, 100, out);
     }
 
     /**
