@@ -36,14 +36,23 @@ class Util {
      * Pipe an InputStream to the given OutputStream <p /> Taken from Apache Commons IOUtils.
      */
     private static long copy(InputStream input, OutputStream output) throws IOException {
-        byte[] buffer = new byte[1024 * 4];
-        long count = 0;
-        int n;
-        while (-1 != (n = input.read(buffer))) {
-            output.write(buffer, 0, n);
-            count += n;
+        try{
+            byte[] buffer = new byte[1024 * 4];
+            long count = 0;
+            int n;
+            while (-1 != (n = input.read(buffer))) {
+              output.write(buffer, 0, n);
+              count += n;
+            }
+            return count;
+        } finally {
+          try{
+            input.close();
+            output.close();
+          }catch (IOException e) {
+            // swallow
+          }
         }
-        return count;
     }
 
 }
