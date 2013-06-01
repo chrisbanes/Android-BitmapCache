@@ -439,16 +439,9 @@ public class BitmapLruCache {
             tmpFile = File.createTempFile("bitmapcache_", null, mTempDir);
 
             // Pipe InputStream to file
-            Util.copy(inputStream, tmpFile);
-
-            try {
-                // Close the original InputStream
-                inputStream.close();
-            } catch (IOException e) {
-                // NO-OP - Ignore
-            }
+            IoUtils.copy(inputStream, tmpFile);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(Constants.LOG_TAG, "Error writing to saving stream to temp file: " + url, e);
         }
 
         CacheableBitmapDrawable d = null;
@@ -470,25 +463,13 @@ public class BitmapLruCache {
                     final ReentrantLock lock = getLockForDiskCacheEdit(url);
                     lock.lock();
 
-                    OutputStream os = null;
-
                     try {
                         DiskLruCache.Editor editor = mDiskCache.edit(key);
-                        os = editor.newOutputStream(0);
-                        Util.copy(tmpFile, os);
-                        os.flush();
+                        IoUtils.copy(tmpFile, editor.newOutputStream(0));
                         editor.commit();
                     } catch (IOException e) {
-                        Log.e(Constants.LOG_TAG, "Error while writing to disk cache", e);
+                        Log.e(Constants.LOG_TAG, "Error writing to disk cache. URL: " + url, e);
                     } finally {
-                        if (null != os) {
-                            try {
-                                os.close();
-                            } catch (IOException e) {
-                                Log.e(Constants.LOG_TAG, "Failed to close output stream", e);
-                            }
-                        }
-
                         lock.unlock();
                         scheduleDiskCacheFlush();
                     }
