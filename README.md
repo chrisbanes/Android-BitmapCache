@@ -42,7 +42,7 @@ it distributed to the central repositories. Simply add the following to your
 <dependency>
     <groupId>com.github.chrisbanes.bitmapcache</groupId>
     <artifactId>library</artifactId>
-    <version>2.2.1</version>
+    <version>2.2.2</version>
 </dependency>
 ```
 

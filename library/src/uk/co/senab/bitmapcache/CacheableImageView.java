@@ -43,6 +43,10 @@ public class CacheableImageView extends ImageView {
         super(context, attrs);
     }
 
+    public CacheableImageView(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
+    }
+
     @Override
     public void setImageDrawable(Drawable drawable) {
         final Drawable previousDrawable = getDrawable();

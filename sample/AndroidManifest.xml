@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="uk.co.senab.bitmapcache.samples"
-    android:versionCode="2210"
-    android:versionName="2.2.1" >
+    android:versionCode="2220"
+    android:versionName="2.2.2" >
 
     <uses-sdk
         android:minSdkVersion="4"
