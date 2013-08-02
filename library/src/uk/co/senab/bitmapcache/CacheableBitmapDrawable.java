@@ -26,6 +26,10 @@ import android.util.Log;
 
 public class CacheableBitmapDrawable extends BitmapDrawable {
 
+    public static final int SOURCE_UNKNOWN = -1;
+    public static final int SOURCE_NEW = 0;
+    public static final int SOURCE_INBITMAP = 1;
+
     static final String LOG_TAG = "CacheableBitmapDrawable";
 
     // URL Associated with this Bitmap
@@ -53,8 +57,10 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 
     private final int mMemorySize;
 
+    private final int mSource;
+
     CacheableBitmapDrawable(String url, Resources resources, Bitmap bitmap,
-            BitmapLruCache.RecyclePolicy recyclePolicy) {
+            BitmapLruCache.RecyclePolicy recyclePolicy, int source) {
         super(resources, bitmap);
 
         mMemorySize = null != bitmap ? (bitmap.getRowBytes() * bitmap.getHeight()) : 0;
@@ -62,6 +68,7 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
         mRecyclePolicy = recyclePolicy;
         mDisplayingCount = 0;
         mCacheCount = 0;
+        mSource = source;
     }
 
     @Override
@@ -92,6 +99,14 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
      */
     public String getUrl() {
         return mUrl;
+    }
+
+    /**
+     * @return One of {@link #SOURCE_NEW}, {@link #SOURCE_INBITMAP} or {@link #SOURCE_UNKNOWN}
+     * depending on how this Bitmap was created.
+     */
+    public int getSource() {
+        return mSource;
     }
 
     /**

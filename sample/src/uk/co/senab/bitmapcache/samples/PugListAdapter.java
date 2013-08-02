@@ -22,7 +22,10 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+
+import uk.co.senab.bitmapcache.CacheableBitmapDrawable;
 
 public class PugListAdapter extends BaseAdapter {
 
@@ -61,17 +64,53 @@ public class PugListAdapter extends BaseAdapter {
                 .findViewById(R.id.nciv_pug);
         TextView status = (TextView) convertView.findViewById(R.id.tv_status);
 
-        final boolean fromCache = imageView.loadImage(mPugUrls.get(position), false);
+        final boolean fromCache = imageView
+                .loadImage(mPugUrls.get(position), false, new UpdateTextViewListener(status));
 
         if (fromCache) {
             status.setText("From Memory Cache");
             status.setBackgroundColor(mContext.getResources().getColor(R.color.translucent_green));
         } else {
-            status.setText("From Disk/Network");
-            status.setBackgroundColor(mContext.getResources().getColor(R.color.translucent_red));
+            status.setText("Loading...");
+            status.setBackgroundDrawable(null);
         }
 
         return convertView;
+    }
+
+    static class UpdateTextViewListener
+            implements NetworkedCacheableImageView.OnImageLoadedListener {
+        private final WeakReference<TextView> mTextViewRef;
+
+        public UpdateTextViewListener(TextView tv) {
+            mTextViewRef = new WeakReference<TextView>(tv);
+        }
+
+        @Override
+        public void onImageLoaded(CacheableBitmapDrawable result) {
+            final TextView tv = mTextViewRef.get();
+            if (tv == null) {
+                return;
+            }
+
+            if (result == null) {
+                tv.setText("Failed");
+                tv.setBackgroundDrawable(null);
+                return;
+            }
+
+            switch (result.getSource()) {
+                case CacheableBitmapDrawable.SOURCE_UNKNOWN:
+                case CacheableBitmapDrawable.SOURCE_NEW:
+                    tv.setText("From Disk/Network");
+                    tv.setBackgroundColor(tv.getResources().getColor(R.color.translucent_red));
+                    break;
+                case CacheableBitmapDrawable.SOURCE_INBITMAP:
+                    tv.setText("Reused Bitmap");
+                    tv.setBackgroundColor(tv.getResources().getColor(R.color.translucent_blue));
+                    break;
+            }
+        }
     }
 
 }

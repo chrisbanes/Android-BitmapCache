@@ -269,11 +269,9 @@ public class BitmapLruCache {
             try {
                 final String key = transformUrlForDiskCacheKey(url);
                 // Try and decode bitmap
-                Bitmap bitmap = decodeBitmap(new SnapshotInputStreamProvider(key), decodeOpts);
+                result = decodeBitmap(new SnapshotInputStreamProvider(key), url, decodeOpts);
 
-                if (null != bitmap) {
-                    result = new CacheableBitmapDrawable(url, mResources, bitmap,
-                            mRecyclePolicy);
+                if (null != result) {
                     if (null != mMemoryCache) {
                         mMemoryCache.put(result);
                     }
@@ -362,7 +360,7 @@ public class BitmapLruCache {
             Bitmap.CompressFormat compressFormat, int compressQuality) {
 
         CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, mResources, bitmap,
-                mRecyclePolicy);
+                mRecyclePolicy, CacheableBitmapDrawable.SOURCE_UNKNOWN);
 
         if (null != mMemoryCache) {
             mMemoryCache.put(d);
@@ -448,11 +446,9 @@ public class BitmapLruCache {
 
         if (null != tmpFile) {
             // Try and decode File
-            Bitmap bitmap = decodeBitmap(new FileInputStreamProvider(tmpFile), decodeOpts);
+            d = decodeBitmap(new FileInputStreamProvider(tmpFile), url, decodeOpts);
 
-            if (null != bitmap) {
-                d = new CacheableBitmapDrawable(url, mResources, bitmap, mRecyclePolicy);
-
+            if (d != null) {
                 if (null != mMemoryCache) {
                     d.setCached(true);
                     mMemoryCache.put(d.getUrl(), d);
@@ -553,9 +549,12 @@ public class BitmapLruCache {
                         TimeUnit.SECONDS);
     }
 
-    private Bitmap decodeBitmap(InputStreamProvider ip, BitmapFactory.Options opts) {
+    private CacheableBitmapDrawable decodeBitmap(InputStreamProvider ip, String url,
+            BitmapFactory.Options opts) {
+
         Bitmap bm = null;
         InputStream is = null;
+        int source = CacheableBitmapDrawable.SOURCE_NEW;
 
         try {
             if (mRecyclePolicy.canInBitmap()) {
@@ -566,7 +565,10 @@ public class BitmapLruCache {
 
                 if (opts.inSampleSize <= 1) {
                     opts.inSampleSize = 1;
-                    addInBitmapOptions(ip, opts);
+
+                    if (addInBitmapOptions(ip, opts)) {
+                        source = CacheableBitmapDrawable.SOURCE_INBITMAP;
+                    }
                 }
             }
 
@@ -579,10 +581,14 @@ public class BitmapLruCache {
         } finally {
             IoUtils.closeStream(is);
         }
-        return bm;
+
+        if (bm != null) {
+            return new CacheableBitmapDrawable(url, mResources, bm, mRecyclePolicy, source);
+        }
+        return null;
     }
 
-    private void addInBitmapOptions(InputStreamProvider ip, BitmapFactory.Options opts) {
+    private boolean addInBitmapOptions(InputStreamProvider ip, BitmapFactory.Options opts) {
         // Create InputStream for decoding the bounds
         final InputStream is = ip.getInputStream();
         // Decode the bounds so we know what size Bitmap to look for
@@ -602,7 +608,10 @@ public class BitmapLruCache {
                 Log.i(Constants.LOG_TAG, "Using inBitmap");
             }
             SDK11.addInBitmapOption(opts, reusableBm);
+            return true;
         }
+
+        return false;
     }
 
     /**

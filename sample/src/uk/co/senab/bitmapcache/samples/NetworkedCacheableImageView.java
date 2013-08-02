@@ -46,6 +46,10 @@ import uk.co.senab.bitmapcache.CacheableImageView;
  */
 public class NetworkedCacheableImageView extends CacheableImageView {
 
+    public interface OnImageLoadedListener {
+        void onImageLoaded(CacheableBitmapDrawable result);
+    }
+
     /**
      * This task simply fetches an Bitmap from the specified URL and wraps it in a wrapper. This
      * implementation is NOT 'best practice' or production ready code.
@@ -56,13 +60,15 @@ public class NetworkedCacheableImageView extends CacheableImageView {
         private final BitmapLruCache mCache;
 
         private final WeakReference<ImageView> mImageViewRef;
+        private final OnImageLoadedListener mListener;
 
         private final BitmapFactory.Options mDecodeOpts;
 
         ImageUrlAsyncTask(ImageView imageView, BitmapLruCache cache,
-                BitmapFactory.Options decodeOpts) {
+                BitmapFactory.Options decodeOpts, OnImageLoadedListener listener) {
             mCache = cache;
             mImageViewRef = new WeakReference<ImageView>(imageView);
+            mListener = listener;
             mDecodeOpts = decodeOpts;
         }
 
@@ -109,6 +115,10 @@ public class NetworkedCacheableImageView extends CacheableImageView {
             if (null != iv) {
                 iv.setImageDrawable(result);
             }
+
+            if (null != mListener) {
+                mListener.onImageLoaded(result);
+            }
         }
     }
 
@@ -128,7 +138,7 @@ public class NetworkedCacheableImageView extends CacheableImageView {
      * @param fullSize - Whether the image should be kept at the original size
      * @return true if the bitmap was found in the cache
      */
-    public boolean loadImage(String url, final boolean fullSize) {
+    public boolean loadImage(String url, final boolean fullSize, OnImageLoadedListener listener) {
         // First check whether there's already a task running, if so cancel it
         if (null != mCurrentTask) {
             mCurrentTask.cancel(true);
@@ -154,7 +164,7 @@ public class NetworkedCacheableImageView extends CacheableImageView {
                 //decodeOpts.inSampleSize = 2;
             }
 
-            mCurrentTask = new ImageUrlAsyncTask(this, mCache, decodeOpts);
+            mCurrentTask = new ImageUrlAsyncTask(this, mCache, decodeOpts, listener);
 
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
