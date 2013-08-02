@@ -22,7 +22,6 @@ import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.widget.ImageView;
 
@@ -151,8 +150,8 @@ public class NetworkedCacheableImageView extends CacheableImageView {
             BitmapFactory.Options decodeOpts = null;
 
             if (!fullSize) {
-                decodeOpts = new BitmapFactory.Options();
-                decodeOpts.inDensity = DisplayMetrics.DENSITY_XHIGH;
+                //decodeOpts = new BitmapFactory.Options();
+                //decodeOpts.inSampleSize = 2;
             }
 
             mCurrentTask = new ImageUrlAsyncTask(this, mCache, decodeOpts);

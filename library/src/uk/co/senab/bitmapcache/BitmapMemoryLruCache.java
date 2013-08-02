@@ -15,15 +15,28 @@
  ******************************************************************************/
 package uk.co.senab.bitmapcache;
 
+import android.graphics.Bitmap;
 import android.support.v4.util.LruCache;
 
+import java.lang.ref.SoftReference;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
 final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapDrawable> {
 
-    BitmapMemoryLruCache(int maxSize) {
+    private final Set<SoftReference<CacheableBitmapDrawable>> mRemovedEntries;
+    private final BitmapLruCache.RecyclePolicy mRecyclePolicy;
+
+    BitmapMemoryLruCache(int maxSize, BitmapLruCache.RecyclePolicy policy) {
         super(maxSize);
+
+        mRecyclePolicy = policy;
+        mRemovedEntries = policy.canInBitmap()
+                ? Collections.synchronizedSet(new HashSet<SoftReference<CacheableBitmapDrawable>>())
+                : null;
     }
 
     CacheableBitmapDrawable put(CacheableBitmapDrawable value) {
@@ -33,6 +46,10 @@ final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapDrawabl
         }
 
         return null;
+    }
+
+    BitmapLruCache.RecyclePolicy getRecyclePolicy() {
+        return mRecyclePolicy;
     }
 
     @Override
@@ -45,6 +62,41 @@ final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapDrawabl
             CacheableBitmapDrawable newValue) {
         // Notify the wrapper that it's no longer being cached
         oldValue.setCached(false);
+
+        if (mRemovedEntries != null && oldValue.isBitmapValid() && oldValue.isBitmapMutable()) {
+            synchronized (mRemovedEntries) {
+                mRemovedEntries.add(new SoftReference<CacheableBitmapDrawable>(oldValue));
+            }
+        }
+    }
+
+    Bitmap getBitmapFromRemoved(final int width, final int height) {
+        if (mRemovedEntries == null) {
+            return null;
+        }
+
+        Bitmap result = null;
+
+        synchronized (mRemovedEntries) {
+            final Iterator<SoftReference<CacheableBitmapDrawable>> it = mRemovedEntries.iterator();
+
+            while (it.hasNext()) {
+                CacheableBitmapDrawable value = it.next().get();
+
+                if (value != null && value.isBitmapValid() && value.isBitmapMutable()) {
+                    if (value.getIntrinsicWidth() == width
+                            && value.getIntrinsicHeight() == height) {
+                        it.remove();
+                        result = value.getBitmap();
+                        break;
+                    }
+                } else {
+                    it.remove();
+                }
+            }
+        }
+
+        return result;
     }
 
     void trimMemory() {

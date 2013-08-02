@@ -99,9 +99,14 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
      *
      * @return true - if the bitmap has not been recycled.
      */
-    public synchronized boolean hasValidBitmap() {
+    public synchronized boolean isBitmapValid() {
         Bitmap bitmap = getBitmap();
         return null != bitmap && !bitmap.isRecycled();
+    }
+
+    public synchronized boolean isBitmapMutable() {
+        Bitmap bitmap = getBitmap();
+        return null != bitmap && bitmap.isMutable();
     }
 
     /**
@@ -194,7 +199,7 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
         cancelCheckStateCallback();
 
         // We're not being referenced or used anywhere
-        if (mCacheCount <= 0 && mDisplayingCount <= 0 && hasValidBitmap()) {
+        if (mCacheCount <= 0 && mDisplayingCount <= 0 && isBitmapValid()) {
 
             /**
              * If we have been displayed or we don't care whether we have

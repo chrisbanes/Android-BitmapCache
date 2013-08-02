@@ -26,6 +26,26 @@ import java.io.OutputStream;
 
 class IoUtils {
 
+    static void closeStream(InputStream is) {
+        if (is != null) {
+            try {
+                is.close();
+            } catch (IOException e) {
+                Log.i(Constants.LOG_TAG, "Failed to close InputStream", e);
+            }
+        }
+    }
+
+    static void closeStream(OutputStream os) {
+        if (os != null) {
+            try {
+                os.close();
+            } catch (IOException e) {
+                Log.i(Constants.LOG_TAG, "Failed to close OutputStream", e);
+            }
+        }
+    }
+
     static long copy(File in, OutputStream out) throws IOException {
         return copy(new FileInputStream(in), out);
     }
@@ -49,16 +69,8 @@ class IoUtils {
             output.flush();
             return count;
         } finally {
-            try {
-                input.close();
-            } catch (IOException e) {
-                Log.i(Constants.LOG_TAG, "Failed to close InputStream", e);
-            }
-            try {
-                output.close();
-            } catch (IOException e) {
-                Log.i(Constants.LOG_TAG, "Failed to close OutputStream", e);
-            }
+            IoUtils.closeStream(input);
+            IoUtils.closeStream(output);
         }
     }
 
