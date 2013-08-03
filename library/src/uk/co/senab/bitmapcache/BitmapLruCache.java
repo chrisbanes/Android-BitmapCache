@@ -29,6 +29,8 @@ import android.os.Process;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -45,7 +47,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * <p> Instances of this class should ideally be kept globally with the application, for example in
  * the {@link android.app.Application Application} object. You should also use the bundled {@link
- * CacheableImageView} wherever possible, as the memory cache has a close relationship with it.
+ * CacheableImageView} wherever possible, as the memory cache has a closeStream relationship with it.
  * </p>
  *
  * <p> Clients can call {@link #get(String)} to retrieve a cached value from the given Url. This
@@ -83,6 +85,15 @@ public class BitmapLruCache {
          * The Bitmap is always recycled when no longer being used. This is the default.
          */
         ALWAYS;
+
+        boolean canInBitmap() {
+            switch (this) {
+                case PRE_HONEYCOMB_ONLY:
+                case DISABLED:
+                    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB;
+            }
+            return false;
+        }
 
         boolean canRecycle() {
             switch (this) {
@@ -257,24 +268,18 @@ public class BitmapLruCache {
 
             try {
                 final String key = transformUrlForDiskCacheKey(url);
-                DiskLruCache.Snapshot snapshot = mDiskCache.get(key);
-                if (null != snapshot) {
-                    // Try and decode bitmap
-                    Bitmap bitmap = BitmapFactory
-                            .decodeStream(snapshot.getInputStream(0), null, decodeOpts);
+                // Try and decode bitmap
+                result = decodeBitmap(new SnapshotInputStreamProvider(key), url, decodeOpts);
 
-                    if (null != bitmap) {
-                        result = new CacheableBitmapDrawable(url, mResources, bitmap,
-                                mRecyclePolicy);
-                        if (null != mMemoryCache) {
-                            mMemoryCache.put(result);
-                        }
-                    } else {
-                        // If we get here, the file in the cache can't be
-                        // decoded. Remove it and schedule a flush.
-                        mDiskCache.remove(key);
-                        scheduleDiskCacheFlush();
+                if (null != result) {
+                    if (null != mMemoryCache) {
+                        mMemoryCache.put(result);
                     }
+                } else {
+                    // If we get here, the file in the cache can't be
+                    // decoded. Remove it and schedule a flush.
+                    mDiskCache.remove(key);
+                    scheduleDiskCacheFlush();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -301,7 +306,7 @@ public class BitmapLruCache {
                 result = mMemoryCache.get(url);
 
                 // If we get a value, but it has a invalid bitmap, remove it
-                if (null != result && !result.hasValidBitmap()) {
+                if (null != result && !result.isBitmapValid()) {
                     mMemoryCache.remove(url);
                     result = null;
                 }
@@ -355,7 +360,7 @@ public class BitmapLruCache {
             Bitmap.CompressFormat compressFormat, int compressQuality) {
 
         CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, mResources, bitmap,
-                mRecyclePolicy);
+                mRecyclePolicy, CacheableBitmapDrawable.SOURCE_UNKNOWN);
 
         if (null != mMemoryCache) {
             mMemoryCache.put(d);
@@ -379,14 +384,7 @@ public class BitmapLruCache {
             } catch (IOException e) {
                 Log.e(Constants.LOG_TAG, "Error while writing to disk cache", e);
             } finally {
-                if (null != os) {
-                    try {
-                        os.close();
-                    } catch (IOException e) {
-                        Log.e(Constants.LOG_TAG, "Failed to close output stream", e);
-                    }
-                }
-
+                IoUtils.closeStream(os);
                 lock.unlock();
                 scheduleDiskCacheFlush();
             }
@@ -448,11 +446,9 @@ public class BitmapLruCache {
 
         if (null != tmpFile) {
             // Try and decode File
-            Bitmap bitmap = BitmapFactory.decodeFile(tmpFile.getAbsolutePath(), decodeOpts);
+            d = decodeBitmap(new FileInputStreamProvider(tmpFile), url, decodeOpts);
 
-            if (null != bitmap) {
-                d = new CacheableBitmapDrawable(url, mResources, bitmap, mRecyclePolicy);
-
+            if (d != null) {
                 if (null != mMemoryCache) {
                     d.setCached(true);
                     mMemoryCache.put(d.getUrl(), d);
@@ -525,9 +521,9 @@ public class BitmapLruCache {
         }
     }
 
-    void setMemoryCache(BitmapMemoryLruCache memoryCache, RecyclePolicy recyclePolicy) {
+    void setMemoryCache(BitmapMemoryLruCache memoryCache) {
         mMemoryCache = memoryCache;
-        mRecyclePolicy = recyclePolicy;
+        mRecyclePolicy = memoryCache.getRecyclePolicy();
     }
 
     private ReentrantLock getLockForDiskCacheEdit(String url) {
@@ -551,6 +547,71 @@ public class BitmapLruCache {
         mDiskCacheFuture = mDiskCacheFlusherExecutor
                 .schedule(mDiskCacheFlusherRunnable, DISK_CACHE_FLUSH_DELAY_SECS,
                         TimeUnit.SECONDS);
+    }
+
+    private CacheableBitmapDrawable decodeBitmap(InputStreamProvider ip, String url,
+            BitmapFactory.Options opts) {
+
+        Bitmap bm = null;
+        InputStream is = null;
+        int source = CacheableBitmapDrawable.SOURCE_NEW;
+
+        try {
+            if (mRecyclePolicy.canInBitmap()) {
+                // Create an options instance if we haven't been provided with one
+                if (opts == null) {
+                    opts = new BitmapFactory.Options();
+                }
+
+                if (opts.inSampleSize <= 1) {
+                    opts.inSampleSize = 1;
+
+                    if (addInBitmapOptions(ip, opts)) {
+                        source = CacheableBitmapDrawable.SOURCE_INBITMAP;
+                    }
+                }
+            }
+
+            // Get InputStream for actual decode
+            is = ip.getInputStream();
+            // Decode stream
+            bm = BitmapFactory.decodeStream(is, null, opts);
+        } catch (Exception e) {
+            Log.e(Constants.LOG_TAG, "Unable to decode stream",  e);
+        } finally {
+            IoUtils.closeStream(is);
+        }
+
+        if (bm != null) {
+            return new CacheableBitmapDrawable(url, mResources, bm, mRecyclePolicy, source);
+        }
+        return null;
+    }
+
+    private boolean addInBitmapOptions(InputStreamProvider ip, BitmapFactory.Options opts) {
+        // Create InputStream for decoding the bounds
+        final InputStream is = ip.getInputStream();
+        // Decode the bounds so we know what size Bitmap to look for
+        opts.inJustDecodeBounds = true;
+        BitmapFactory.decodeStream(is, null, opts);
+        IoUtils.closeStream(is);
+
+        // Turn off just decoding bounds
+        opts.inJustDecodeBounds = false;
+        // Make sure the decoded file is mutable
+        opts.inMutable = true;
+
+        // Try and find Bitmap to use for inBitmap
+        Bitmap reusableBm = mMemoryCache.getBitmapFromRemoved(opts.outWidth, opts.outHeight);
+        if (reusableBm != null) {
+            if (Constants.DEBUG) {
+                Log.i(Constants.LOG_TAG, "Using inBitmap");
+            }
+            SDK11.addInBitmapOption(opts, reusableBm);
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -578,7 +639,7 @@ public class BitmapLruCache {
 
         static final int DEFAULT_MEM_CACHE_MAX_SIZE_MB = 3;
 
-        static final RecyclePolicy DEFAULT_RECYCLE_POLICY = RecyclePolicy.ALWAYS;
+        static final RecyclePolicy DEFAULT_RECYCLE_POLICY = RecyclePolicy.PRE_HONEYCOMB_ONLY;
 
         // Only used for Javadoc
         static final float DEFAULT_MEMORY_CACHE_HEAP_PERCENTAGE = DEFAULT_MEMORY_CACHE_HEAP_RATIO
@@ -635,7 +696,7 @@ public class BitmapLruCache {
                 if (Constants.DEBUG) {
                     Log.d("BitmapLruCache.Builder", "Creating Memory Cache");
                 }
-                cache.setMemoryCache(new BitmapMemoryLruCache(mMemoryCacheMaxSize), mRecyclePolicy);
+                cache.setMemoryCache(new BitmapMemoryLruCache(mMemoryCacheMaxSize, mRecyclePolicy));
             }
 
             if (isValidOptionsForDiskCache()) {
@@ -797,6 +858,49 @@ public class BitmapLruCache {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    interface InputStreamProvider {
+        InputStream getInputStream();
+    }
+
+    static class FileInputStreamProvider implements InputStreamProvider {
+        final File mFile;
+
+        FileInputStreamProvider(File file) {
+            mFile = file;
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            try {
+                return new FileInputStream(mFile);
+            } catch (FileNotFoundException e) {
+                Log.e(Constants.LOG_TAG, "Could not decode file: " + mFile.getAbsolutePath(), e);
+            }
+            return null;
+        }
+    }
+
+    final class SnapshotInputStreamProvider implements InputStreamProvider {
+        final String mKey;
+
+        SnapshotInputStreamProvider(String key) {
+            mKey = key;
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            try {
+                DiskLruCache.Snapshot snapshot = mDiskCache.get(mKey);
+                if (snapshot != null) {
+                    return snapshot.getInputStream(0);
+                }
+            } catch (IOException e) {
+                Log.e(Constants.LOG_TAG, "Could open disk cache for url: " + mKey, e);
+            }
+            return null;
         }
     }
 }

@@ -26,6 +26,10 @@ import android.util.Log;
 
 public class CacheableBitmapDrawable extends BitmapDrawable {
 
+    public static final int SOURCE_UNKNOWN = -1;
+    public static final int SOURCE_NEW = 0;
+    public static final int SOURCE_INBITMAP = 1;
+
     static final String LOG_TAG = "CacheableBitmapDrawable";
 
     // URL Associated with this Bitmap
@@ -53,8 +57,10 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 
     private final int mMemorySize;
 
+    private final int mSource;
+
     CacheableBitmapDrawable(String url, Resources resources, Bitmap bitmap,
-            BitmapLruCache.RecyclePolicy recyclePolicy) {
+            BitmapLruCache.RecyclePolicy recyclePolicy, int source) {
         super(resources, bitmap);
 
         mMemorySize = null != bitmap ? (bitmap.getRowBytes() * bitmap.getHeight()) : 0;
@@ -62,6 +68,7 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
         mRecyclePolicy = recyclePolicy;
         mDisplayingCount = 0;
         mCacheCount = 0;
+        mSource = source;
     }
 
     @Override
@@ -95,13 +102,26 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
     }
 
     /**
+     * @return One of {@link #SOURCE_NEW}, {@link #SOURCE_INBITMAP} or {@link #SOURCE_UNKNOWN}
+     * depending on how this Bitmap was created.
+     */
+    public int getSource() {
+        return mSource;
+    }
+
+    /**
      * Returns true when this wrapper has a bitmap and the bitmap has not been recycled.
      *
      * @return true - if the bitmap has not been recycled.
      */
-    public synchronized boolean hasValidBitmap() {
+    public synchronized boolean isBitmapValid() {
         Bitmap bitmap = getBitmap();
         return null != bitmap && !bitmap.isRecycled();
+    }
+
+    public synchronized boolean isBitmapMutable() {
+        Bitmap bitmap = getBitmap();
+        return null != bitmap && bitmap.isMutable();
     }
 
     /**
@@ -194,7 +214,7 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
         cancelCheckStateCallback();
 
         // We're not being referenced or used anywhere
-        if (mCacheCount <= 0 && mDisplayingCount <= 0 && hasValidBitmap()) {
+        if (mCacheCount <= 0 && mDisplayingCount <= 0 && isBitmapValid()) {
 
             /**
              * If we have been displayed or we don't care whether we have
