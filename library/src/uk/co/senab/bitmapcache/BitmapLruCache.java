@@ -28,6 +28,7 @@ import android.os.Looper;
 import android.os.Process;
 import android.util.Log;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -411,16 +412,67 @@ public class BitmapLruCache {
     }
 
     /**
-     * Caches resulting bitmap from {@code inputStream} for {@code url} into all enabled caches.
-     * This version of the method should be preferred as it allows the original image contents to be
-     * cached, rather than a re-compressed version. <p /> The contents of the InputStream will be
-     * copied to a temporary file, then the file will be decoded into a Bitmap, using the optional
-     * <code>decodeOpts</code>. Providing the decode worked: <ul> <li>If the memory cache is
-     * enabled, the decoded Bitmap will be cached to memory.</li> <li>If the disk cache is enabled,
-     * the contents of the original stream will be cached to disk.</li> </ul> <p/> You should not
-     * call this method from the main/UI thread.
-     *
-     * @param url         - String representing the URL of the image
+     * Caches resulting bitmap from {@code data} for {@code url} into all
+     * enabled caches. This version of the method should be preferred as it
+     * allows the original image contents to be cached, rather than a
+     * re-compressed version.
+     * <p />
+     * The contents of the array will be decoded into a Bitmap, using the
+     * optional <code>decodeOpts</code>. Providing the decode worked:
+     * <ul>
+     * <li>If the memory cache is enabled, the decoded Bitmap will be cached to
+     * memory.</li>
+     * <li>If the disk cache is enabled, a temporay version of the contents is
+     * copied to disk before decoding and then cached to disk.</li>
+     * </ul>
+     * <p/>
+     * You should not call this method from the main/UI thread.
+     * 
+     * @param url - String representing the URL of the image
+     * @param data - Raw data opened from {@code url}
+     * @param decodeOpts - Options used for decoding. This does not affect what
+     *            is cached in the disk cache (if enabled).
+     * @return CacheableBitmapDrawable which can be used to display the bitmap.
+     */
+    public CacheableBitmapDrawable put(final String url, final byte[] data,
+            final BitmapFactory.Options decodeOpts) {
+        checkNotOnMainThread();
+
+        if (null == mDiskCache) {
+            // shortcut to avoid temporary storage on disk
+            CacheableBitmapDrawable d = decodeBitmap(new ByteArrayInputStreamProvider(data), url,
+                    decodeOpts);
+            if (null != d) {
+                if (null != mMemoryCache) {
+                    d.setCached(true);
+                    mMemoryCache.put(d.getUrl(), d);
+                }
+                return d;
+            }
+        }
+
+        return put(url, new ByteArrayInputStream(data), decodeOpts);
+    }
+
+    /**
+     * Caches resulting bitmap from {@code inputStream} for {@code url} into all
+     * enabled caches. This version of the method should be preferred as it
+     * allows the original image contents to be cached, rather than a
+     * re-compressed version.
+     * <p />
+     * The contents of the InputStream will be copied to a temporary file, then
+     * the file will be decoded into a Bitmap, using the optional
+     * <code>decodeOpts</code>. Providing the decode worked:
+     * <ul>
+     * <li>If the memory cache is enabled, the decoded Bitmap will be cached to
+     * memory.</li>
+     * <li>If the disk cache is enabled, the contents of the original stream
+     * will be cached to disk.</li>
+     * </ul>
+     * <p/>
+     * You should not call this method from the main/UI thread.
+     * 
+     * @param url - String representing the URL of the image
      * @param inputStream - InputStream opened from {@code url}
      * @param decodeOpts  - Options used for decoding. This does not affect what is cached in the
      *                    disk cache (if enabled).
@@ -575,7 +627,12 @@ public class BitmapLruCache {
             // Get InputStream for actual decode
             is = ip.getInputStream();
             // Decode stream
-            bm = BitmapFactory.decodeStream(is, null, opts);
+            if (is == null && ip instanceof ByteArrayInputStreamProvider) {
+                byte[] data = ((ByteArrayInputStreamProvider) ip).array;
+                bm = BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+            } else {
+                bm = BitmapFactory.decodeStream(is, null, opts);
+            }
         } catch (Exception e) {
             Log.e(Constants.LOG_TAG, "Unable to decode stream",  e);
         } finally {
@@ -879,6 +936,24 @@ public class BitmapLruCache {
             } catch (FileNotFoundException e) {
                 Log.e(Constants.LOG_TAG, "Could not decode file: " + mFile.getAbsolutePath(), e);
             }
+            return null;
+        }
+    }
+
+    static class ByteArrayInputStreamProvider implements InputStreamProvider {
+        final byte[] array;
+
+        ByteArrayInputStreamProvider(byte[] array) {
+            this.array = array;
+        }
+
+        /**
+         * Do Not Use this, doesn't work with
+         * {@link BitmapFactory#decodeStream(InputStream, android.graphics.Rect, android.graphics.BitmapFactory.Options)
+         * BitmapFactory.decodeStream} with an {@link ByteArrayInputStream}
+         */
+        @Override
+        public InputStream getInputStream() {
             return null;
         }
     }
