@@ -108,6 +108,11 @@ final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapDrawabl
                 remove(entry.getKey());
             }
         }
+        
+        if (mRemovedEntries!=null) {
+            synchronized (mRemovedEntries) {
+                mRemovedEntries.clear();
+            }
+        }
     }
-
 }
