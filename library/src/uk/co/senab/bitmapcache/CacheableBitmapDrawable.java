@@ -59,7 +59,7 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
 
     private final int mSource;
 
-    protected CacheableBitmapDrawable(String url, Resources resources, Bitmap bitmap,
+    public CacheableBitmapDrawable(String url, Resources resources, Bitmap bitmap,
             BitmapLruCache.RecyclePolicy recyclePolicy, int source) {
         super(resources, bitmap);
 
