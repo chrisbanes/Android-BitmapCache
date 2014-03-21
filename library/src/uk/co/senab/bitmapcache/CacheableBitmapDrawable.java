@@ -167,6 +167,13 @@ public class CacheableBitmapDrawable extends BitmapDrawable {
         checkState();
     }
 
+    /**
+     * Try to recycle if not referenced by cache or being displayed.
+     */
+    private void tryRecycle() {
+        checkState(false);
+    }
+
     private void cancelCheckStateCallback() {
         if (null != mCheckStateRunnable) {
             if (Constants.DEBUG) {
