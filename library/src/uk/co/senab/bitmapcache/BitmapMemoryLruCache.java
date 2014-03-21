@@ -83,7 +83,7 @@ final class BitmapMemoryLruCache extends LruCache<String, CacheableBitmapDrawabl
             while (it.hasNext()) {
                 CacheableBitmapDrawable value = it.next().get();
 
-                if (value != null && value.isBitmapValid() && value.isBitmapMutable()) {
+                if (value != null && value.isBitmapValid() && value.isBitmapMutable() && !value.isBeingDisplayed() && !value.isReferencedByCache()) {
                     if (value.getIntrinsicWidth() == width
                             && value.getIntrinsicHeight() == height) {
                         it.remove();
