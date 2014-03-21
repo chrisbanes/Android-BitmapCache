@@ -563,6 +563,14 @@ public class BitmapLruCache {
         }
     }
 
+    public void purgeDiskCache() {
+        try {
+            mDiskCache.delete();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
     synchronized void setDiskCache(DiskLruCache diskCache) {
         mDiskCache = diskCache;
 
