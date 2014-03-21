@@ -363,9 +363,46 @@ public class BitmapLruCache {
         CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, mResources, bitmap,
                 mRecyclePolicy, CacheableBitmapDrawable.SOURCE_UNKNOWN);
 
+        putInMemoryCache(url, d, compressFormat, compressQuality);
+        putInDiskCache(url, d, compressFormat, compressQuality);
+        return d;
+    }
+
+    public CacheableBitmapDrawable putInMemoryCache(final String url, final Bitmap bitmap) {
+        return putInMemoryCache(url, bitmap, Bitmap.CompressFormat.PNG, 100);
+    }
+
+    public CacheableBitmapDrawable putInMemoryCache(final String url, final CacheableBitmapDrawable drawable) {
+        return putInMemoryCache(url, drawable, Bitmap.CompressFormat.PNG, 100);
+    }
+
+    public CacheableBitmapDrawable putInMemoryCache(final String url, final CacheableBitmapDrawable drawable,
+                                                    Bitmap.CompressFormat compressFormat, int compressQuality) {
         if (null != mMemoryCache) {
-            mMemoryCache.put(d);
+            mMemoryCache.put(drawable);
         }
+        return drawable;
+    }
+
+    public CacheableBitmapDrawable putInMemoryCache(final String url, final Bitmap bitmap,
+                                       Bitmap.CompressFormat compressFormat, int compressQuality) {
+
+        CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, mResources, bitmap,
+                mRecyclePolicy, CacheableBitmapDrawable.SOURCE_UNKNOWN);
+
+        return putInMemoryCache(url, d, compressFormat, compressQuality);
+    }
+
+    public CacheableBitmapDrawable putInDiskCache(final String url, final Bitmap bitmap) {
+        return putInDiskCache(url, bitmap, Bitmap.CompressFormat.PNG, 100);
+    }
+
+    public CacheableBitmapDrawable putInDiskCache(final String url, final CacheableBitmapDrawable drawable) {
+        return putInDiskCache(url, drawable, Bitmap.CompressFormat.PNG, 100);
+    }
+
+    public CacheableBitmapDrawable putInDiskCache(final String url, final CacheableBitmapDrawable drawable,
+                                                  Bitmap.CompressFormat compressFormat, int compressQuality) {
 
         if (null != mDiskCache) {
             checkNotOnMainThread();
@@ -379,7 +416,7 @@ public class BitmapLruCache {
             try {
                 DiskLruCache.Editor editor = mDiskCache.edit(key);
                 os = editor.newOutputStream(0);
-                bitmap.compress(compressFormat, compressQuality, os);
+                drawable.getBitmap().compress(compressFormat, compressQuality, os);
                 os.flush();
                 editor.commit();
             } catch (IOException e) {
@@ -391,9 +428,17 @@ public class BitmapLruCache {
             }
         }
 
-        return d;
+        return drawable;
     }
 
+    public CacheableBitmapDrawable putInDiskCache(final String url, final Bitmap bitmap,
+                                       Bitmap.CompressFormat compressFormat, int compressQuality) {
+
+        CacheableBitmapDrawable d = new CacheableBitmapDrawable(url, mResources, bitmap,
+                mRecyclePolicy, CacheableBitmapDrawable.SOURCE_UNKNOWN);
+
+        return putInDiskCache(url, d, compressFormat, compressQuality);
+    }
     /**
      * Caches resulting bitmap from {@code inputStream} for {@code url} into all enabled caches.
      * This version of the method should be preferred as it allows the original image contents to be
@@ -553,6 +598,31 @@ public class BitmapLruCache {
     }
 
     /**
+     * Removes the entry for {@code url} from memory, if it exists. <p/>
+     */
+    public void removeFromMemoryCache(String url) {
+        if (null != mMemoryCache) {
+            mMemoryCache.remove(url);
+        }
+    }
+
+    /**
+     * Removes the entry for {@code url} from disk cache, if it exists. <p/> You should not call this method from main/UI thread.
+     */
+    public void removeFromDiskCache(String url) {
+        if (null != mDiskCache) {
+            checkNotOnMainThread();
+
+            try {
+                mDiskCache.remove(transformUrlForDiskCacheKey(url));
+                scheduleDiskCacheFlush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
      * This method iterates through the memory cache (if enabled) and removes any entries which are
      * not currently being displayed. A good place to call this would be from {@link
      * android.app.Application#onLowMemory() Application.onLowMemory()}.
@@ -601,6 +671,14 @@ public class BitmapLruCache {
                         TimeUnit.SECONDS);
     }
 
+    public CacheableBitmapDrawable createCacheableBitmapDrawable(Bitmap bitmap, String url, int source)
+    {
+        if (bitmap != null) {
+            return new CacheableBitmapDrawable(url, mResources, bitmap, mRecyclePolicy, source);
+        }
+        return null;
+    }
+
     private CacheableBitmapDrawable decodeBitmap(InputStreamProvider ip, String url,
             BitmapFactory.Options opts) {
 
@@ -639,10 +717,7 @@ public class BitmapLruCache {
             IoUtils.closeStream(is);
         }
 
-        if (bm != null) {
-            return new CacheableBitmapDrawable(url, mResources, bm, mRecyclePolicy, source);
-        }
-        return null;
+        return createCacheableBitmapDrawable(bm, url, source);
     }
 
     private boolean addInBitmapOptions(InputStreamProvider ip, BitmapFactory.Options opts) {
