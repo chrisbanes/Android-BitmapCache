@@ -317,6 +317,16 @@ public class BitmapLruCache {
         return result;
     }
 
+
+    public Bitmap getBitmapFromRemoved(final int width, final int height) {
+        if (null != mMemoryCache) {
+            synchronized (mMemoryCache) {
+                return mMemoryCache.getBitmapFromRemoved(width, height);
+            }
+        }
+        return null;
+    }
+
     /**
      * @return true if the Disk Cache is enabled.
      */
