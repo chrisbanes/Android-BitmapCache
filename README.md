@@ -1,7 +1,7 @@
 Android-BitmapCache
 =========================
 
-This project came about as part of my blog post: [http://www.senab.co.uk/2012/07/01/android-bitmap-caching-revisited/](http://www.senab.co.uk/2012/07/01/android-bitmap-caching-revisited/)
+This project came about as part of my blog post: [http://chris.banes.me/2012/07/01/android-bitmap-caching-8230-revisited/](http://chris.banes.me/2012/07/01/android-bitmap-caching-8230-revisited/)
 
 Android-BitmapCache is a specialised cache, for use with Android Bitmap objects. 
 
